@@ -1,0 +1,27 @@
+<svg width="240" height="160" viewBox="0 0 240 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="28" y1="18" x2="212" y2="140" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FCE7B0" />
+      <stop offset="1" stop-color="#F6B24C" />
+    </linearGradient>
+    <linearGradient id="patty" x1="44" y1="56" x2="196" y2="106" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#9E4E17" />
+      <stop offset="1" stop-color="#612B0E" />
+    </linearGradient>
+    <linearGradient id="shine" x1="50" y1="18" x2="184" y2="136" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.8" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="240" height="160" rx="18" fill="url(#bg)" />
+  <ellipse cx="118" cy="112" rx="74" ry="16" fill="rgba(0,0,0,0.08)" />
+  <path d="M48 62C48 51 57 42 68 42H172C183 42 192 51 192 62V66H48V62Z" fill="#C85D1E" />
+  <path d="M44 69H196L184 94C181 99 176 102 170 102H70C64 102 59 99 56 94L44 69Z" fill="url(#patty)" />
+  <rect x="52" y="74" width="136" height="8" rx="4" fill="#7BBE4D" />
+  <rect x="58" y="86" width="124" height="6" rx="3" fill="#E8D3A2" />
+  <path d="M52 52C54 40 64 32 76 32H164C176 32 186 40 188 52L192 66H48L52 52Z" fill="#F7D39D" />
+  <path d="M48 62H192L188 70H52L48 62Z" fill="#F0C47F" />
+  <path d="M60 54C62 47 68 42 76 42H164C172 42 178 47 180 54H60Z" fill="url(#shine)" />
+  <circle cx="120" cy="18" r="8" fill="#FFF1C7" opacity="0.75" />
+  <circle cx="146" cy="26" r="4" fill="#FFF1C7" opacity="0.55" />
+</svg>
