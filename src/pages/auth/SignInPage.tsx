@@ -11,7 +11,6 @@ function SignInPage({
   onTogglePassword,
   onForgotPassword,
   onSubmit,
-  errorMessage,
 }: SignInPageProps) {
   return (
     <AuthCard>
@@ -71,8 +70,6 @@ function SignInPage({
       <button className="primary-button" type="button" onClick={onSubmit}>
         Sign In
       </button>
-
-      {errorMessage ? <p className="form-error">{errorMessage}</p> : null}
     </AuthCard>
   );
 }

@@ -1,4 +1,3 @@
-import axios from "axios";
 import { API_CONFIG } from "../config/apiConfig";
 import { apiClient } from "./apiClient";
 
@@ -62,30 +61,21 @@ export const tokenStorage = {
 // Admin Login API
 export const authService = {
   login: async (credentials: LoginRequest): Promise<LoginResponse> => {
-    try {
-      const response = await apiClient.post<LoginResponse>(
-        API_CONFIG.endpoints.adminLogin,
-        credentials,
-      );
+    const response = await apiClient.post<LoginResponse>(
+      API_CONFIG.endpoints.adminLogin,
+      credentials,
+    );
 
-      const data = response.data;
+    const data = response.data;
 
-      if (data.success && data.data) {
-        // Store tokens
-        tokenStorage.setAccessToken(data.data.accessToken);
-        tokenStorage.setRefreshToken(data.data.refreshToken);
-        tokenStorage.setAdmin(data.data.admin);
-      }
-
-      return data;
-    } catch (error) {
-      const errorMessage = axios.isAxiosError(error)
-        ? error.response?.data?.message || error.message || "Login failed"
-        : error instanceof Error
-          ? error.message
-          : "Login failed";
-      throw new Error(errorMessage);
+    if (data.success && data.data) {
+      // Store tokens
+      tokenStorage.setAccessToken(data.data.accessToken);
+      tokenStorage.setRefreshToken(data.data.refreshToken);
+      tokenStorage.setAdmin(data.data.admin);
     }
+
+    return data;
   },
 
   logout: () => {

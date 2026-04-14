@@ -16,7 +16,6 @@ export type SignInPageProps = {
   onTogglePassword: () => void;
   onForgotPassword: () => void;
   onSubmit: () => void;
-  errorMessage?: string;
 };
 
 export type VerifyEmailPageProps = {
