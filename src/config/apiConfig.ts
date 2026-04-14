@@ -31,7 +31,7 @@ export const API_CONFIG = {
   endpoints: {
     adminLogin: "/api/v1/admin/login",
     adminLogout: "/api/v1/admin/logout",
-    adminForgetPassword: "/api/v1/admin/forget-password",
+    adminForgetPassword: "/api/v1/admin/forgot-password",
     adminVerifyResetOtp: "/api/v1/admin/verify-reset-otp",
     adminResetPassword: "/api/v1/admin/reset-password",
   },
