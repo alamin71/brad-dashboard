@@ -27,6 +27,8 @@ function App() {
   const [otp, setOtp] = useState(() =>
     Array.from({ length: otpLength }, () => ""),
   );
+  const [otpToken, setOtpToken] = useState("");
+  const [resetToken, setResetToken] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
@@ -80,6 +82,87 @@ function App() {
     }
   };
 
+  const handleGetOtp = async () => {
+    const normalizedEmail = email.trim();
+
+    if (!normalizedEmail) {
+      toast.error("Please enter email address.");
+      return;
+    }
+
+    try {
+      const response = await authService.forgetPassword(normalizedEmail);
+      setOtpToken(response.data.otpToken);
+      setOtp(Array.from({ length: otpLength }, () => ""));
+      toast.success("OTP sent to your email.");
+      navigate(authRoutes.otp);
+    } catch {
+      // API error toast is handled centrally in axios interceptor.
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    const otpValue = otp.join("");
+
+    if (otpValue.length !== otpLength) {
+      toast.error(`Please enter ${otpLength}-digit OTP.`);
+      return;
+    }
+
+    if (!otpToken) {
+      toast.error("OTP session expired. Please request OTP again.");
+      navigate(authRoutes.verifyEmail);
+      return;
+    }
+
+    try {
+      const response = await authService.verifyResetOtp(otpValue, otpToken);
+      setResetToken(response.data.resetToken);
+      toast.success("OTP verified successfully.");
+      navigate(authRoutes.newPassword);
+    } catch {
+      // API error toast is handled centrally in axios interceptor.
+    }
+  };
+
+  const handleSetNewPassword = async () => {
+    if (!newPassword || !confirmPassword) {
+      toast.error("Please fill in both password fields.");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast.error("Passwords do not match.");
+      return;
+    }
+
+    if (!resetToken) {
+      toast.error("Reset session expired. Verify OTP again.");
+      navigate(authRoutes.otp);
+      return;
+    }
+
+    try {
+      await authService.resetPassword(
+        {
+          newPassword,
+          confirmPassword,
+        },
+        resetToken,
+      );
+
+      setNewPassword("");
+      setConfirmPassword("");
+      setResetToken("");
+      setOtpToken("");
+      setOtp(Array.from({ length: otpLength }, () => ""));
+      toast.success("Password reset successful.");
+      navigate(authRoutes.success);
+    } catch {
+      // API error toast is handled centrally in axios interceptor.
+    }
+  };
+
   const handleLogout = () => {
     authService.logout();
     toast.success("Logged out successfully.");
@@ -112,7 +195,7 @@ function App() {
               <VerifyEmailPage
                 email={email}
                 onEmailChange={setEmail}
-                onGetOtp={() => navigate(authRoutes.otp)}
+                onGetOtp={handleGetOtp}
                 onBackToSignIn={() => navigate(authRoutes.signIn)}
               />
             }
@@ -126,9 +209,9 @@ function App() {
                 onOtpChange={updateOtp}
                 onOtpKeyDown={handleOtpKeyDown}
                 onOtpPaste={handleOtpPaste}
-                onVerifyOtp={() => navigate(authRoutes.newPassword)}
+                onVerifyOtp={handleVerifyOtp}
                 onChangeEmail={() => navigate(authRoutes.verifyEmail)}
-                onResend={() => navigate(authRoutes.verifyEmail)}
+                onResend={handleGetOtp}
               />
             }
           />
@@ -148,7 +231,7 @@ function App() {
                 onToggleConfirmPassword={() =>
                   setShowConfirmPassword((current) => !current)
                 }
-                onSubmit={() => navigate(authRoutes.success)}
+                onSubmit={handleSetNewPassword}
                 onBackToOtp={() => navigate(authRoutes.otp)}
               />
             }
