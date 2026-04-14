@@ -1,5 +1,6 @@
-// API Configuration
-import { API_CONFIG, getEndpointUrl } from "../config/apiConfig";
+import axios from "axios";
+import { API_CONFIG } from "../config/apiConfig";
+import { apiClient } from "./apiClient";
 
 export const API_BASE_URL = API_CONFIG.baseUrl;
 
@@ -62,23 +63,12 @@ export const tokenStorage = {
 export const authService = {
   login: async (credentials: LoginRequest): Promise<LoginResponse> => {
     try {
-      const response = await fetch(
-        getEndpointUrl(API_CONFIG.endpoints.adminLogin),
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(credentials),
-        },
+      const response = await apiClient.post<LoginResponse>(
+        API_CONFIG.endpoints.adminLogin,
+        credentials,
       );
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Login failed");
-      }
-
-      const data: LoginResponse = await response.json();
+      const data = response.data;
 
       if (data.success && data.data) {
         // Store tokens
@@ -89,8 +79,11 @@ export const authService = {
 
       return data;
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Login failed";
+      const errorMessage = axios.isAxiosError(error)
+        ? error.response?.data?.message || error.message || "Login failed"
+        : error instanceof Error
+          ? error.message
+          : "Login failed";
       throw new Error(errorMessage);
     }
   },

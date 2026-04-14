@@ -10,8 +10,3 @@ export const authRoutes = {
   policyPages: "/admin/policy-pages",
   accountSettings: "/admin/account-settings",
 } as const;
-
-export const adminCredentials = {
-  email: "admin@gmail.com",
-  password: "Admin@123",
-} as const;
