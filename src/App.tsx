@@ -10,8 +10,9 @@ import OtpVerificationPage from "./pages/auth/OtpVerificationPage";
 import SignInPage from "./pages/auth/SignInPage";
 import SuccessPage from "./pages/auth/SuccessPage";
 import VerifyEmailPage from "./pages/auth/VerifyEmailPage";
-import { authRoutes, adminCredentials } from "./pages/auth/authConfig";
+import { authRoutes } from "./pages/auth/authConfig";
 import { otpLength } from "./pages/auth/authTypes";
+import { authService } from "./services/authService";
 import "./App.css";
 
 function App() {
@@ -59,17 +60,28 @@ function App() {
     setOtp(nextOtp);
   };
 
-  const handleSignIn = () => {
-    if (
-      email.trim() === adminCredentials.email &&
-      password === adminCredentials.password
-    ) {
-      setLoginError("");
-      navigate(authRoutes.dashboard);
+  const handleSignIn = async () => {
+    if (!email.trim() || !password) {
+      setLoginError("Please enter email and password.");
       return;
     }
 
-    setLoginError("Invalid admin email or password.");
+    try {
+      setLoginError("");
+
+      await authService.login({
+        email: email.trim(),
+        password,
+      });
+
+      navigate(authRoutes.dashboard);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Login failed. Please try again.";
+      setLoginError(errorMessage);
+    }
   };
 
   return (
@@ -158,7 +170,14 @@ function App() {
       </Route>
       <Route
         path="/admin"
-        element={<AdminLayout onLogout={() => navigate(authRoutes.signIn)} />}
+        element={
+          <AdminLayout
+            onLogout={() => {
+              authService.logout();
+              navigate(authRoutes.signIn);
+            }}
+          />
+        }
       >
         <Route
           path={authRoutes.dashboard.replace("/admin/", "")}
