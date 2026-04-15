@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
+import { toast } from "react-toastify";
 import {
   FiCamera,
   FiCheck,
@@ -10,6 +11,7 @@ import {
   FiTrash2,
   FiX,
 } from "react-icons/fi";
+import { authService } from "../../services/authService";
 
 type SettingsTab = "basic" | "password";
 type EmailModalStep = "enter" | "verify" | "otp" | "success";
@@ -28,9 +30,12 @@ function AdminAccountSettingsPage() {
     null,
   );
   const [emailDraft, setEmailDraft] = useState("");
+  const [otpToken, setOtpToken] = useState("");
   const [otp, setOtp] = useState(() =>
     Array.from({ length: otpLength }, () => ""),
   );
+  const [isRequestingOtp, setIsRequestingOtp] = useState(false);
+  const [isResendingOtp, setIsResendingOtp] = useState(false);
   const otpRefs = useRef<Array<HTMLInputElement | null>>([]);
 
   const [currentPassword, setCurrentPassword] = useState("");
@@ -39,6 +44,7 @@ function AdminAccountSettingsPage() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   const emailForVerification = useMemo(() => {
     return emailDraft.trim() || emailAddress;
@@ -67,6 +73,7 @@ function AdminAccountSettingsPage() {
 
   const openEmailModal = () => {
     setEmailDraft("");
+    setOtpToken("");
     setOtp(Array.from({ length: otpLength }, () => ""));
     setEmailModalStep("enter");
   };
@@ -74,6 +81,7 @@ function AdminAccountSettingsPage() {
   const closeEmailModal = () => {
     setEmailModalStep(null);
     setEmailDraft("");
+    setOtpToken("");
     setOtp(Array.from({ length: otpLength }, () => ""));
   };
 
@@ -118,20 +126,83 @@ function AdminAccountSettingsPage() {
     setEmailModalStep("success");
   };
 
-  const handleSetPassword = (event: FormEvent<HTMLFormElement>) => {
+  const handleGetOtp = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const normalizedEmail = emailForVerification.trim();
+
+    if (!normalizedEmail) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
+
+    setIsRequestingOtp(true);
+
+    try {
+      const response = await authService.forgetPassword(normalizedEmail);
+      setOtpToken(response.data.otpToken);
+      setOtp(Array.from({ length: otpLength }, () => ""));
+      setEmailModalStep("otp");
+      toast.success("OTP sent successfully.");
+    } catch {
+      // API error toast is handled centrally in axios interceptor.
+    } finally {
+      setIsRequestingOtp(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (!otpToken) {
+      toast.error("OTP session expired. Please request OTP again.");
+      setEmailModalStep("verify");
+      return;
+    }
+
+    setIsResendingOtp(true);
+
+    try {
+      const response = await authService.resendOtp(otpToken);
+      setOtp(Array.from({ length: otpLength }, () => ""));
+      setOtpToken(response.data.otpToken || otpToken);
+      toast.success("OTP resent successfully.");
+    } catch {
+      // API error toast is handled centrally in axios interceptor.
+    } finally {
+      setIsResendingOtp(false);
+    }
+  };
+
+  const handleSetPassword = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (!currentPassword || !newPassword || !confirmPassword) {
+      toast.error("Please fill in all password fields.");
       return;
     }
 
     if (newPassword !== confirmPassword) {
+      toast.error("New password and confirm password do not match.");
       return;
     }
 
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
+    setIsChangingPassword(true);
+
+    try {
+      await authService.changePassword({
+        currentPassword,
+        newPassword,
+        confirmPassword,
+      });
+
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      toast.success("Password changed successfully.");
+    } catch {
+      // API error toast is handled centrally in axios interceptor.
+    } finally {
+      setIsChangingPassword(false);
+    }
   };
 
   return (
@@ -308,8 +379,12 @@ function AdminAccountSettingsPage() {
             </div>
           </label>
 
-          <button className="account-settings__submit" type="submit">
-            Set New Password
+          <button
+            className="account-settings__submit"
+            type="submit"
+            disabled={isChangingPassword}
+          >
+            {isChangingPassword ? "Updating..." : "Set New Password"}
           </button>
         </form>
       )}
@@ -409,12 +484,7 @@ function AdminAccountSettingsPage() {
             ) : null}
 
             {emailModalStep === "verify" ? (
-              <form
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  setEmailModalStep("otp");
-                }}
-              >
+              <form onSubmit={handleGetOtp}>
                 <h3>Verify Your Email</h3>
                 <p>Enter your email address to get an OTP code.</p>
                 <label htmlFor="verify-email-input">New Email Address</label>
@@ -436,8 +506,9 @@ function AdminAccountSettingsPage() {
                   <button
                     type="submit"
                     className="account-settings-modal__confirm"
+                    disabled={isRequestingOtp}
                   >
-                    Get OTP
+                    {isRequestingOtp ? "Sending..." : "Get OTP"}
                   </button>
                 </div>
               </form>
@@ -473,13 +544,8 @@ function AdminAccountSettingsPage() {
 
                 <div className="account-settings-modal__resend">
                   <span>Did not get OTP?</span>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setOtp(Array.from({ length: otpLength }, () => ""))
-                    }
-                  >
-                    Resend
+                  <button type="button" onClick={handleResendOtp}>
+                    {isResendingOtp ? "Resending..." : "Resend"}
                   </button>
                 </div>
 

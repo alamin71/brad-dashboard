@@ -32,8 +32,10 @@ export const API_CONFIG = {
     adminLogin: "/api/v1/admin/login",
     adminLogout: "/api/v1/admin/logout",
     adminForgetPassword: "/api/v1/admin/forgot-password",
+    adminResendOtp: "/api/v1/admin/resend-otp",
     adminVerifyResetOtp: "/api/v1/admin/verify-reset-otp",
     adminResetPassword: "/api/v1/admin/reset-password",
+    adminChangePassword: "/api/v1/admin/change-password",
   },
 };
 

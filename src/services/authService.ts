@@ -57,6 +57,28 @@ interface ResetPasswordResponse {
   statusCode: number;
 }
 
+interface ResendOtpResponse {
+  success: boolean;
+  message: string;
+  statusCode: number;
+  data: {
+    otp?: string;
+    otpToken: string;
+  };
+}
+
+interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+interface ChangePasswordResponse {
+  success: boolean;
+  message: string;
+  statusCode: number;
+}
+
 // Token management
 export const tokenStorage = {
   setAccessToken: (token: string) => {
@@ -152,6 +174,37 @@ export const authService = {
       {
         headers: {
           "reset-token": resetToken,
+        },
+      },
+    );
+
+    return response.data;
+  },
+
+  resendOtp: async (otpToken: string): Promise<ResendOtpResponse> => {
+    const response = await apiClient.post<ResendOtpResponse>(
+      API_CONFIG.endpoints.adminResendOtp,
+      undefined,
+      {
+        headers: {
+          "otp-token": otpToken,
+        },
+      },
+    );
+
+    return response.data;
+  },
+
+  changePassword: async (
+    payload: ChangePasswordRequest,
+  ): Promise<ChangePasswordResponse> => {
+    const accessToken = tokenStorage.getAccessToken();
+    const response = await apiClient.patch<ChangePasswordResponse>(
+      API_CONFIG.endpoints.adminChangePassword,
+      payload,
+      {
+        headers: {
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
         },
       },
     );

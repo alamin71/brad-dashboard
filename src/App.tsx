@@ -41,6 +41,11 @@ function App() {
       next[index] = nextValue;
       return next;
     });
+
+    if (nextValue && index < otpLength - 1) {
+      const nextField = document.getElementById(`otp-${index + 1}`);
+      nextField?.focus();
+    }
   };
 
   const handleOtpKeyDown = (index: number, key: string) => {
