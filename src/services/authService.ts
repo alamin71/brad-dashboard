@@ -199,9 +199,18 @@ export const authService = {
     payload: ChangePasswordRequest,
   ): Promise<ChangePasswordResponse> => {
     const accessToken = tokenStorage.getAccessToken();
+
+    const requestPayload = {
+      currentPassword: payload.currentPassword,
+      newPassword: payload.newPassword,
+      confirmPassword: payload.confirmPassword,
+      // Keep backend compatibility for older/misspelled contract.
+      confirimPassword: payload.confirmPassword,
+    };
+
     const response = await apiClient.patch<ChangePasswordResponse>(
       API_CONFIG.endpoints.adminChangePassword,
-      payload,
+      requestPayload,
       {
         headers: {
           ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
