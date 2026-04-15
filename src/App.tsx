@@ -4,6 +4,7 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import AdminContentPage from "./pages/admin/AdminContentPage";
 import AdminDashboardPage from "./pages/admin/AdminDashboardPage";
+import AdminAccountSettingsPage from "./pages/admin/AdminAccountSettingsPage";
 import AdminLayout from "./pages/admin/AdminLayout";
 import AdminPlaceholderPage from "./pages/admin/AdminPlaceholderPage";
 import AuthLayout from "./components/auth/AuthLayout";
@@ -272,12 +273,7 @@ function App() {
           />
           <Route
             path={authRoutes.accountSettings.replace("/admin/", "")}
-            element={
-              <AdminPlaceholderPage
-                title="Account Settings"
-                description="Update admin profile and account settings in this area."
-              />
-            }
+            element={<AdminAccountSettingsPage />}
           />
           <Route
             index
