@@ -130,6 +130,16 @@ export const tokenStorage = {
   },
 };
 
+const getRequiredAccessToken = (): string => {
+  const accessToken = tokenStorage.getAccessToken();
+
+  if (!accessToken) {
+    throw new Error("Session expired. Please sign in again.");
+  }
+
+  return accessToken;
+};
+
 // Admin Login API
 export const authService = {
   login: async (credentials: LoginRequest): Promise<LoginResponse> => {
@@ -218,7 +228,7 @@ export const authService = {
   changePassword: async (
     payload: ChangePasswordRequest,
   ): Promise<ChangePasswordResponse> => {
-    const accessToken = tokenStorage.getAccessToken();
+    const accessToken = getRequiredAccessToken();
 
     const requestPayload = {
       currentPassword: payload.currentPassword,
@@ -233,7 +243,7 @@ export const authService = {
       requestPayload,
       {
         headers: {
-          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+          Authorization: `Bearer ${accessToken}`,
         },
       },
     );
@@ -244,14 +254,14 @@ export const authService = {
   requestAdminEmailChange: async (
     newEmail: string,
   ): Promise<RequestAdminEmailChangeResponse> => {
-    const accessToken = tokenStorage.getAccessToken();
+    const accessToken = getRequiredAccessToken();
 
     const response = await apiClient.post<RequestAdminEmailChangeResponse>(
       API_CONFIG.endpoints.adminChangeEmailRequest,
       { newEmail },
       {
         headers: {
-          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+          Authorization: `Bearer ${accessToken}`,
         },
       },
     );
@@ -262,7 +272,7 @@ export const authService = {
   verifyAdminEmailChangeOtp: async (
     otp: string | number,
   ): Promise<VerifyAdminEmailChangeResponse> => {
-    const accessToken = tokenStorage.getAccessToken();
+    const accessToken = getRequiredAccessToken();
     const normalizedOtp =
       typeof otp === "string" ? Number.parseInt(otp, 10) : otp;
 
@@ -271,7 +281,7 @@ export const authService = {
       { otp: normalizedOtp },
       {
         headers: {
-          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+          Authorization: `Bearer ${accessToken}`,
         },
       },
     );
