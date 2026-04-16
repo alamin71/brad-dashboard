@@ -31,9 +31,19 @@ function AdminAccountSettingsPage({
   const [activeTab, setActiveTab] = useState<SettingsTab>("basic");
   const [fullName, setFullName] = useState("Christopher Nesscrance");
   const [emailAddress, setEmailAddress] = useState("superadmin@whatyoueat.com");
+  const [profilePhotoSrc, setProfilePhotoSrc] = useState("/admin-avatar.svg");
 
   const [nameModalOpen, setNameModalOpen] = useState(false);
   const [nameDraft, setNameDraft] = useState(fullName);
+  const [isSavingName, setIsSavingName] = useState(false);
+
+  const [profilePhotoModalOpen, setProfilePhotoModalOpen] = useState(false);
+  const [profilePhotoFile, setProfilePhotoFile] = useState<File | null>(null);
+  const [profilePhotoPreview, setProfilePhotoPreview] = useState("");
+  const [isUpdatingProfilePhoto, setIsUpdatingProfilePhoto] = useState(false);
+
+  const [removePhotoModalOpen, setRemovePhotoModalOpen] = useState(false);
+  const [isRemovingProfilePhoto, setIsRemovingProfilePhoto] = useState(false);
 
   const [emailModalStep, setEmailModalStep] = useState<EmailModalStep | null>(
     null,
@@ -65,15 +75,127 @@ function AdminAccountSettingsPage({
     setNameDraft(fullName);
   };
 
-  const saveName = (event: FormEvent<HTMLFormElement>) => {
+  const saveName = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!nameDraft.trim()) {
+    const normalizedName = nameDraft.trim();
+
+    if (!normalizedName) {
       return;
     }
 
-    setFullName(nameDraft.trim());
-    setNameModalOpen(false);
+    setIsSavingName(true);
+
+    try {
+      const response = await authService.updateAdminProfile({
+        name: normalizedName,
+      });
+
+      const updatedName = response.data?.name?.trim() || normalizedName;
+
+      setFullName(updatedName);
+      setNameDraft(updatedName);
+      setNameModalOpen(false);
+      toast.success(response.message || "Name updated successfully.");
+    } catch {
+      // API error toast is handled centrally in axios interceptor.
+    } finally {
+      setIsSavingName(false);
+    }
+  };
+
+  const openProfilePhotoModal = () => {
+    setProfilePhotoFile(null);
+    setProfilePhotoPreview(profilePhotoSrc);
+    setProfilePhotoModalOpen(true);
+  };
+
+  const closeProfilePhotoModal = () => {
+    setProfilePhotoModalOpen(false);
+    setProfilePhotoFile(null);
+    setProfilePhotoPreview("");
+  };
+
+  const handleProfilePhotoChange = (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0] ?? null;
+
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select a valid image file.");
+      return;
+    }
+
+    setProfilePhotoFile(file);
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setProfilePhotoPreview(
+        typeof reader.result === "string" ? reader.result : "",
+      );
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const saveProfilePhoto = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!profilePhotoFile) {
+      toast.error("Please choose a profile photo.");
+      return;
+    }
+
+    setIsUpdatingProfilePhoto(true);
+
+    try {
+      const response = await authService.updateAdminProfile({
+        name: fullName.trim(),
+        profileImage: profilePhotoFile,
+      });
+
+      const updatedPhoto =
+        response.data?.profileImage?.trim() ||
+        response.data?.image?.trim() ||
+        profilePhotoPreview ||
+        profilePhotoSrc;
+
+      setProfilePhotoSrc(updatedPhoto);
+      closeProfilePhotoModal();
+      toast.success(response.message || "Profile photo updated successfully.");
+    } catch {
+      // API error toast is handled centrally in axios interceptor.
+    } finally {
+      setIsUpdatingProfilePhoto(false);
+    }
+  };
+
+  const openRemovePhotoModal = () => {
+    setRemovePhotoModalOpen(true);
+  };
+
+  const closeRemovePhotoModal = () => {
+    setRemovePhotoModalOpen(false);
+  };
+
+  const handleRemoveProfilePhoto = async () => {
+    setIsRemovingProfilePhoto(true);
+
+    try {
+      const response = await authService.deleteAdminProfilePhoto();
+      setProfilePhotoSrc("/admin-avatar.svg");
+      setProfilePhotoFile(null);
+      setProfilePhotoPreview("");
+      setRemovePhotoModalOpen(false);
+      toast.success(response.message || "Profile photo removed successfully.");
+    } catch {
+      // API error toast is handled centrally in axios interceptor.
+    } finally {
+      setIsRemovingProfilePhoto(false);
+    }
   };
 
   const openEmailModal = () => {
@@ -243,7 +365,7 @@ function AdminAccountSettingsPage({
       <div className="account-settings__profile-card">
         <img
           className="account-settings__avatar"
-          src="/admin-avatar.svg"
+          src={profilePhotoSrc}
           alt="Christopher Nesscrance"
         />
 
@@ -252,11 +374,19 @@ function AdminAccountSettingsPage({
           <span>Super Admin</span>
 
           <div className="account-settings__profile-actions">
-            <button type="button" className="account-settings__outline-action">
+            <button
+              type="button"
+              className="account-settings__outline-action"
+              onClick={openProfilePhotoModal}
+            >
               <FiCamera aria-hidden="true" focusable="false" />
               <span>Change Profile Photo</span>
             </button>
-            <button type="button" className="account-settings__danger-action">
+            <button
+              type="button"
+              className="account-settings__danger-action"
+              onClick={openRemovePhotoModal}
+            >
               <FiTrash2 aria-hidden="true" focusable="false" />
               <span>Remove Profile Photo</span>
             </button>
@@ -453,10 +583,127 @@ function AdminAccountSettingsPage({
                 Cancel
               </button>
               <button type="submit" className="account-settings-modal__confirm">
-                Save Changes
+                {isSavingName ? "Saving..." : "Save Changes"}
               </button>
             </div>
           </form>
+        </div>
+      ) : null}
+
+      {profilePhotoModalOpen ? (
+        <div
+          className="account-settings-modal"
+          role="presentation"
+          onClick={closeProfilePhotoModal}
+        >
+          <form
+            className="account-settings-modal__panel"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="change-profile-photo-title"
+            onClick={(event) => event.stopPropagation()}
+            onSubmit={saveProfilePhoto}
+          >
+            <button
+              type="button"
+              className="account-settings-modal__close"
+              onClick={closeProfilePhotoModal}
+              aria-label="Close"
+            >
+              <FiX aria-hidden="true" focusable="false" />
+            </button>
+
+            <h2 id="change-profile-photo-title">Change Profile Photo</h2>
+            <div className="account-settings-modal__divider" />
+
+            <div className="account-settings-modal__photo-preview">
+              <img
+                src={profilePhotoPreview || profilePhotoSrc}
+                alt="Profile photo preview"
+                style={{
+                  width: "120px",
+                  height: "120px",
+                  objectFit: "cover",
+                  borderRadius: "50%",
+                  display: "block",
+                  margin: "0 auto 16px",
+                }}
+              />
+            </div>
+
+            <label htmlFor="profile-photo-input">Choose a new image</label>
+            <input
+              id="profile-photo-input"
+              type="file"
+              accept="image/*"
+              onChange={handleProfilePhotoChange}
+            />
+
+            <div className="account-settings-modal__actions">
+              <button
+                type="button"
+                className="account-settings-modal__cancel"
+                onClick={closeProfilePhotoModal}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="account-settings-modal__confirm"
+                disabled={isUpdatingProfilePhoto}
+              >
+                {isUpdatingProfilePhoto ? "Saving..." : "Save Changes"}
+              </button>
+            </div>
+          </form>
+        </div>
+      ) : null}
+
+      {removePhotoModalOpen ? (
+        <div
+          className="account-settings-modal"
+          role="presentation"
+          onClick={closeRemovePhotoModal}
+        >
+          <div
+            className="account-settings-modal__panel"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="remove-profile-photo-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="account-settings-modal__close"
+              onClick={closeRemovePhotoModal}
+              aria-label="Close"
+            >
+              <FiX aria-hidden="true" focusable="false" />
+            </button>
+
+            <h2 id="remove-profile-photo-title">Remove Profile Photo</h2>
+            <div className="account-settings-modal__divider" />
+
+            <p>Are you sure you want to remove the current profile photo?</p>
+
+            <div className="account-settings-modal__actions">
+              <button
+                type="button"
+                className="account-settings-modal__cancel"
+                onClick={closeRemovePhotoModal}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="account-settings-modal__confirm account-settings-modal__confirm--wide"
+                onClick={handleRemoveProfilePhoto}
+                disabled={isRemovingProfilePhoto}
+              >
+                {isRemovingProfilePhoto ? "Removing..." : "Remove Photo"}
+              </button>
+            </div>
+          </div>
         </div>
       ) : null}
 

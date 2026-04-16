@@ -79,6 +79,28 @@ interface ChangePasswordResponse {
   statusCode: number;
 }
 
+interface UpdateAdminProfileRequest {
+  name: string;
+  profileImage?: File | null;
+}
+
+interface UpdateAdminProfileResponse {
+  success: boolean;
+  message: string;
+  statusCode: number;
+  data?: {
+    name?: string;
+    profileImage?: string;
+    image?: string;
+  };
+}
+
+interface DeleteAdminProfilePhotoResponse {
+  success: boolean;
+  message: string;
+  statusCode: number;
+}
+
 interface RequestAdminEmailChangeResponse {
   success: boolean;
   message: string;
@@ -250,6 +272,48 @@ export const authService = {
 
     return response.data;
   },
+
+  updateAdminProfile: async (
+    payload: UpdateAdminProfileRequest,
+  ): Promise<UpdateAdminProfileResponse> => {
+    const accessToken = getRequiredAccessToken();
+    const formData = new FormData();
+
+    formData.append("name", payload.name);
+
+    if (payload.profileImage) {
+      formData.append("profileImage", payload.profileImage);
+    }
+
+    const response = await apiClient.patch<UpdateAdminProfileResponse>(
+      API_CONFIG.endpoints.adminProfileUpdate,
+      formData,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "multipart/form-data",
+        },
+      },
+    );
+
+    return response.data;
+  },
+
+  deleteAdminProfilePhoto:
+    async (): Promise<DeleteAdminProfilePhotoResponse> => {
+      const accessToken = getRequiredAccessToken();
+
+      const response = await apiClient.delete<DeleteAdminProfilePhotoResponse>(
+        API_CONFIG.endpoints.adminProfilePhotoDelete,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        },
+      );
+
+      return response.data;
+    },
 
   requestAdminEmailChange: async (
     newEmail: string,

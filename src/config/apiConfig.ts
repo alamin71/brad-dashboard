@@ -38,6 +38,8 @@ export const API_CONFIG = {
     adminChangePassword: "/api/v1/admin/change-password",
     adminChangeEmailRequest: "/api/v1/admin/change-email/request",
     adminVerifyChangeEmailOtp: "/api/v1/admin/change-email/verify-otp",
+    adminProfileUpdate: "/api/v1/admin/profile/update",
+    adminProfilePhotoDelete: "/api/v1/admin/profile/photo",
   },
 };
 
