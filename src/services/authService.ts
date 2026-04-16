@@ -244,9 +244,16 @@ export const authService = {
   requestAdminEmailChange: async (
     newEmail: string,
   ): Promise<RequestAdminEmailChangeResponse> => {
+    const accessToken = tokenStorage.getAccessToken();
+
     const response = await apiClient.post<RequestAdminEmailChangeResponse>(
       API_CONFIG.endpoints.adminChangeEmailRequest,
       { newEmail },
+      {
+        headers: {
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+      },
     );
 
     return response.data;
@@ -255,9 +262,16 @@ export const authService = {
   verifyAdminEmailChangeOtp: async (
     otp: string,
   ): Promise<VerifyAdminEmailChangeResponse> => {
+    const accessToken = tokenStorage.getAccessToken();
+
     const response = await apiClient.post<VerifyAdminEmailChangeResponse>(
       API_CONFIG.endpoints.adminVerifyChangeEmailOtp,
       { otp },
+      {
+        headers: {
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+      },
     );
 
     return response.data;
