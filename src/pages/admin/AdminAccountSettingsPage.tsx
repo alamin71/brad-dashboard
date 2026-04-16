@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { toast } from "react-toastify";
 import {
@@ -11,10 +11,11 @@ import {
   FiTrash2,
   FiX,
 } from "react-icons/fi";
+import BrandMark from "../../components/auth/BrandMark";
 import { authService } from "../../services/authService";
 
 type SettingsTab = "basic" | "password";
-type EmailModalStep = "enter" | "verify" | "otp" | "success";
+type EmailModalStep = "enter" | "otp" | "success";
 
 const otpLength = 6;
 
@@ -30,12 +31,12 @@ function AdminAccountSettingsPage() {
     null,
   );
   const [emailDraft, setEmailDraft] = useState("");
-  const [otpToken, setOtpToken] = useState("");
   const [otp, setOtp] = useState(() =>
     Array.from({ length: otpLength }, () => ""),
   );
-  const [isRequestingOtp, setIsRequestingOtp] = useState(false);
+  const [isRequestingEmailChange, setIsRequestingEmailChange] = useState(false);
   const [isResendingOtp, setIsResendingOtp] = useState(false);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const otpRefs = useRef<Array<HTMLInputElement | null>>([]);
 
   const [currentPassword, setCurrentPassword] = useState("");
@@ -45,10 +46,6 @@ function AdminAccountSettingsPage() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
-
-  const emailForVerification = useMemo(() => {
-    return emailDraft.trim() || emailAddress;
-  }, [emailAddress, emailDraft]);
 
   const openNameModal = () => {
     setNameDraft(fullName);
@@ -73,7 +70,6 @@ function AdminAccountSettingsPage() {
 
   const openEmailModal = () => {
     setEmailDraft("");
-    setOtpToken("");
     setOtp(Array.from({ length: otpLength }, () => ""));
     setEmailModalStep("enter");
   };
@@ -81,18 +77,33 @@ function AdminAccountSettingsPage() {
   const closeEmailModal = () => {
     setEmailModalStep(null);
     setEmailDraft("");
-    setOtpToken("");
     setOtp(Array.from({ length: otpLength }, () => ""));
   };
 
-  const goToEmailVerify = (event: FormEvent<HTMLFormElement>) => {
+  const handleRequestEmailChange = async (
+    event: FormEvent<HTMLFormElement>,
+  ) => {
     event.preventDefault();
 
-    if (!emailDraft.trim()) {
+    const normalizedEmail = emailDraft.trim();
+
+    if (!normalizedEmail) {
+      toast.error("Please enter a valid email address.");
       return;
     }
 
-    setEmailModalStep("verify");
+    setIsRequestingEmailChange(true);
+
+    try {
+      await authService.requestAdminEmailChange(normalizedEmail);
+      setOtp(Array.from({ length: otpLength }, () => ""));
+      setEmailModalStep("otp");
+      toast.success("OTP sent successfully.");
+    } catch {
+      // API error toast is handled centrally in axios interceptor.
+    } finally {
+      setIsRequestingEmailChange(false);
+    }
   };
 
   const handleOtpChange = (index: number, rawValue: string) => {
@@ -115,55 +126,52 @@ function AdminAccountSettingsPage() {
     }
   };
 
-  const verifyOtp = (event: FormEvent<HTMLFormElement>) => {
+  const verifyOtp = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (otp.join("").length !== otpLength) {
+      toast.error(`Please enter ${otpLength}-digit OTP.`);
       return;
     }
 
-    setEmailAddress(emailForVerification);
-    setEmailModalStep("success");
-  };
-
-  const handleGetOtp = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    const normalizedEmail = emailForVerification.trim();
+    const normalizedEmail = emailDraft.trim();
 
     if (!normalizedEmail) {
-      toast.error("Please enter a valid email address.");
+      toast.error("Email session expired. Please request OTP again.");
+      setEmailModalStep("enter");
       return;
     }
 
-    setIsRequestingOtp(true);
+    setIsVerifyingOtp(true);
 
     try {
-      const response = await authService.forgetPassword(normalizedEmail);
-      setOtpToken(response.data.otpToken);
-      setOtp(Array.from({ length: otpLength }, () => ""));
-      setEmailModalStep("otp");
-      toast.success("OTP sent successfully.");
+      const response = await authService.verifyAdminEmailChangeOtp(
+        otp.join(""),
+      );
+      setEmailAddress(response.data.email?.trim() || normalizedEmail);
+      toast.success(response.message || "Email updated successfully.");
+      setEmailModalStep("success");
     } catch {
       // API error toast is handled centrally in axios interceptor.
     } finally {
-      setIsRequestingOtp(false);
+      setIsVerifyingOtp(false);
     }
   };
 
   const handleResendOtp = async () => {
-    if (!otpToken) {
-      toast.error("OTP session expired. Please request OTP again.");
-      setEmailModalStep("verify");
+    const normalizedEmail = emailDraft.trim();
+
+    if (!normalizedEmail) {
+      toast.error("Email session expired. Please request OTP again.");
+      setEmailModalStep("enter");
       return;
     }
 
     setIsResendingOtp(true);
 
     try {
-      const response = await authService.resendOtp(otpToken);
+      await authService.requestAdminEmailChange(normalizedEmail);
       setOtp(Array.from({ length: otpLength }, () => ""));
-      setOtpToken(response.data.otpToken || otpToken);
       toast.success("OTP resent successfully.");
     } catch {
       // API error toast is handled centrally in axios interceptor.
@@ -455,7 +463,7 @@ function AdminAccountSettingsPage() {
             <div className="account-settings-modal__divider" />
 
             {emailModalStep === "enter" ? (
-              <form onSubmit={goToEmailVerify}>
+              <form onSubmit={handleRequestEmailChange}>
                 <label htmlFor="change-email-input">New Email Address</label>
                 <input
                   id="change-email-input"
@@ -476,39 +484,9 @@ function AdminAccountSettingsPage() {
                   <button
                     type="submit"
                     className="account-settings-modal__confirm"
+                    disabled={isRequestingEmailChange}
                   >
-                    Continue
-                  </button>
-                </div>
-              </form>
-            ) : null}
-
-            {emailModalStep === "verify" ? (
-              <form onSubmit={handleGetOtp}>
-                <h3>Verify Your Email</h3>
-                <p>Enter your email address to get an OTP code.</p>
-                <label htmlFor="verify-email-input">New Email Address</label>
-                <input
-                  id="verify-email-input"
-                  type="email"
-                  value={emailForVerification}
-                  onChange={(event) => setEmailDraft(event.target.value)}
-                />
-
-                <div className="account-settings-modal__actions">
-                  <button
-                    type="button"
-                    className="account-settings-modal__cancel"
-                    onClick={() => setEmailModalStep("enter")}
-                  >
-                    Back
-                  </button>
-                  <button
-                    type="submit"
-                    className="account-settings-modal__confirm"
-                    disabled={isRequestingOtp}
-                  >
-                    {isRequestingOtp ? "Sending..." : "Get OTP"}
+                    {isRequestingEmailChange ? "Sending..." : "Send OTP"}
                   </button>
                 </div>
               </form>
@@ -517,10 +495,12 @@ function AdminAccountSettingsPage() {
             {emailModalStep === "otp" ? (
               <form onSubmit={verifyOtp}>
                 <h3>OTP Verification</h3>
-                <p>Enter the verification code we sent to your email.</p>
+                <p>
+                  Enter the verification code we sent to {emailDraft.trim()}.
+                </p>
                 <div className="account-settings-modal__mail-row">
                   <FiMail aria-hidden="true" focusable="false" />
-                  <span>{emailForVerification}</span>
+                  <span>{emailDraft.trim()}</span>
                 </div>
 
                 <div className="account-settings-modal__otp-grid">
@@ -553,15 +533,16 @@ function AdminAccountSettingsPage() {
                   <button
                     type="button"
                     className="account-settings-modal__cancel"
-                    onClick={() => setEmailModalStep("verify")}
+                    onClick={() => setEmailModalStep("enter")}
                   >
                     Back
                   </button>
                   <button
                     type="submit"
                     className="account-settings-modal__confirm"
+                    disabled={isVerifyingOtp}
                   >
-                    Verify OTP
+                    {isVerifyingOtp ? "Verifying..." : "Verify OTP"}
                   </button>
                 </div>
               </form>
@@ -569,6 +550,7 @@ function AdminAccountSettingsPage() {
 
             {emailModalStep === "success" ? (
               <div className="account-settings-modal__success">
+                <BrandMark />
                 <span
                   className="account-settings-modal__success-icon"
                   aria-hidden="true"

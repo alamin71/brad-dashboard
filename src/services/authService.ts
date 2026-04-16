@@ -79,6 +79,26 @@ interface ChangePasswordResponse {
   statusCode: number;
 }
 
+interface RequestAdminEmailChangeResponse {
+  success: boolean;
+  message: string;
+  statusCode: number;
+  data: {
+    otp?: string;
+    email?: string;
+  };
+}
+
+interface VerifyAdminEmailChangeResponse {
+  success: boolean;
+  message: string;
+  statusCode: number;
+  data: {
+    email?: string;
+    message?: string;
+  };
+}
+
 // Token management
 export const tokenStorage = {
   setAccessToken: (token: string) => {
@@ -216,6 +236,28 @@ export const authService = {
           ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
         },
       },
+    );
+
+    return response.data;
+  },
+
+  requestAdminEmailChange: async (
+    newEmail: string,
+  ): Promise<RequestAdminEmailChangeResponse> => {
+    const response = await apiClient.post<RequestAdminEmailChangeResponse>(
+      API_CONFIG.endpoints.adminChangeEmailRequest,
+      { newEmail },
+    );
+
+    return response.data;
+  },
+
+  verifyAdminEmailChangeOtp: async (
+    otp: string,
+  ): Promise<VerifyAdminEmailChangeResponse> => {
+    const response = await apiClient.post<VerifyAdminEmailChangeResponse>(
+      API_CONFIG.endpoints.adminVerifyChangeEmailOtp,
+      { otp },
     );
 
     return response.data;
