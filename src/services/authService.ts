@@ -260,13 +260,15 @@ export const authService = {
   },
 
   verifyAdminEmailChangeOtp: async (
-    otp: string,
+    otp: string | number,
   ): Promise<VerifyAdminEmailChangeResponse> => {
     const accessToken = tokenStorage.getAccessToken();
+    const normalizedOtp =
+      typeof otp === "string" ? Number.parseInt(otp, 10) : otp;
 
     const response = await apiClient.post<VerifyAdminEmailChangeResponse>(
       API_CONFIG.endpoints.adminVerifyChangeEmailOtp,
-      { otp },
+      { otp: normalizedOtp },
       {
         headers: {
           ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
