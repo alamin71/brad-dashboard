@@ -175,6 +175,14 @@ function App() {
     navigate(authRoutes.signIn);
   };
 
+  const handleEmailChangeSuccess = (updatedEmail: string) => {
+    authService.logout();
+    setPassword("");
+    setShowPassword(false);
+    setEmail(updatedEmail.trim());
+    toast.success("Email updated. Please sign in again.");
+  };
+
   return (
     <>
       <Routes>
@@ -278,7 +286,11 @@ function App() {
           />
           <Route
             path={authRoutes.accountSettings.replace("/admin/", "")}
-            element={<AdminAccountSettingsPage />}
+            element={
+              <AdminAccountSettingsPage
+                onEmailChangeSuccess={handleEmailChangeSuccess}
+              />
+            }
           />
           <Route
             index

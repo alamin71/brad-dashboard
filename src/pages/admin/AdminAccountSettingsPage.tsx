@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import type { FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
   FiCamera,
@@ -12,14 +13,21 @@ import {
   FiX,
 } from "react-icons/fi";
 import BrandMark from "../../components/auth/BrandMark";
+import { authRoutes } from "../auth/authConfig";
 import { authService } from "../../services/authService";
 
 type SettingsTab = "basic" | "password";
 type EmailModalStep = "enter" | "otp" | "success";
+type AdminAccountSettingsPageProps = {
+  onEmailChangeSuccess?: (updatedEmail: string) => void;
+};
 
 const otpLength = 6;
 
-function AdminAccountSettingsPage() {
+function AdminAccountSettingsPage({
+  onEmailChangeSuccess,
+}: AdminAccountSettingsPageProps) {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<SettingsTab>("basic");
   const [fullName, setFullName] = useState("Christopher Nesscrance");
   const [emailAddress, setEmailAddress] = useState("superadmin@whatyoueat.com");
@@ -148,7 +156,9 @@ function AdminAccountSettingsPage() {
       const response = await authService.verifyAdminEmailChangeOtp(
         otp.join(""),
       );
-      setEmailAddress(response.data.email?.trim() || normalizedEmail);
+      const updatedEmail = response.data.email?.trim() || normalizedEmail;
+      setEmailAddress(updatedEmail);
+      onEmailChangeSuccess?.(updatedEmail);
       toast.success(response.message || "Email updated successfully.");
       setEmailModalStep("success");
     } catch {
@@ -156,6 +166,11 @@ function AdminAccountSettingsPage() {
     } finally {
       setIsVerifyingOtp(false);
     }
+  };
+
+  const handleSignInAfterEmailChange = () => {
+    closeEmailModal();
+    navigate(authRoutes.signIn);
   };
 
   const handleResendOtp = async () => {
@@ -562,7 +577,7 @@ function AdminAccountSettingsPage() {
                 <button
                   type="button"
                   className="account-settings-modal__confirm account-settings-modal__confirm--wide"
-                  onClick={closeEmailModal}
+                  onClick={handleSignInAfterEmailChange}
                 >
                   Sign In
                 </button>
