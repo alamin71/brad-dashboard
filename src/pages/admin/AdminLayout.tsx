@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import {
   FiBell,
@@ -9,6 +9,10 @@ import {
   FiSettings,
   FiUsers,
 } from "react-icons/fi";
+import {
+  ADMIN_PROFILE_UPDATED_EVENT,
+  tokenStorage,
+} from "../../services/authService";
 
 type AdminLayoutProps = {
   onLogout: () => void;
@@ -26,8 +30,47 @@ const navigationItems = [
   },
 ];
 
+const defaultProfilePhoto = "/admin-avatar.svg";
+
+const getStoredAdminPhoto = () => {
+  const admin = tokenStorage.getAdmin();
+
+  if (!admin) {
+    return defaultProfilePhoto;
+  }
+
+  const possiblePhoto =
+    (typeof admin.profileImage === "string" && admin.profileImage.trim()) ||
+    (typeof admin.image === "string" && admin.image.trim()) ||
+    (typeof admin.avatar === "string" && admin.avatar.trim()) ||
+    (typeof admin.photo === "string" && admin.photo.trim());
+
+  return possiblePhoto || defaultProfilePhoto;
+};
+
 function AdminLayout({ onLogout }: AdminLayoutProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const [profilePhotoSrc, setProfilePhotoSrc] = useState(getStoredAdminPhoto);
+
+  useEffect(() => {
+    const syncProfilePhoto = () => {
+      setProfilePhotoSrc(getStoredAdminPhoto());
+    };
+
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === "admin") {
+        syncProfilePhoto();
+      }
+    };
+
+    window.addEventListener(ADMIN_PROFILE_UPDATED_EVENT, syncProfilePhoto);
+    window.addEventListener("storage", onStorage);
+
+    return () => {
+      window.removeEventListener(ADMIN_PROFILE_UPDATED_EVENT, syncProfilePhoto);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, []);
 
   return (
     <main
@@ -114,7 +157,7 @@ function AdminLayout({ onLogout }: AdminLayoutProps) {
           <div className="dashboard-profile">
             <img
               className="dashboard-profile__photo"
-              src="/admin-avatar.svg"
+              src={profilePhotoSrc}
               alt="Admin profile"
             />
           </div>

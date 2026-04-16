@@ -2,6 +2,7 @@ import { API_CONFIG } from "../config/apiConfig";
 import { apiClient } from "./apiClient";
 
 export const API_BASE_URL = API_CONFIG.baseUrl;
+export const ADMIN_PROFILE_UPDATED_EVENT = "admin-profile-updated";
 
 interface AdminData {
   id: string;
@@ -121,6 +122,18 @@ interface VerifyAdminEmailChangeResponse {
   };
 }
 
+const emitAdminProfileUpdated = (admin: AdminData | null) => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.dispatchEvent(
+    new CustomEvent(ADMIN_PROFILE_UPDATED_EVENT, {
+      detail: admin,
+    }),
+  );
+};
+
 // Token management
 export const tokenStorage = {
   setAccessToken: (token: string) => {
@@ -137,15 +150,32 @@ export const tokenStorage = {
   },
   setAdmin: (admin: AdminData) => {
     localStorage.setItem("admin", JSON.stringify(admin));
+    emitAdminProfileUpdated(admin);
   },
   getAdmin: (): AdminData | null => {
     const admin = localStorage.getItem("admin");
     return admin ? JSON.parse(admin) : null;
   },
+  updateAdmin: (partialAdmin: Partial<AdminData>): AdminData | null => {
+    const currentAdmin = tokenStorage.getAdmin();
+
+    if (!currentAdmin) {
+      return null;
+    }
+
+    const nextAdmin = {
+      ...currentAdmin,
+      ...partialAdmin,
+    };
+
+    tokenStorage.setAdmin(nextAdmin);
+    return nextAdmin;
+  },
   clearAll: () => {
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
     localStorage.removeItem("admin");
+    emitAdminProfileUpdated(null);
   },
   isLoggedIn: () => {
     return !!localStorage.getItem("accessToken");

@@ -14,7 +14,7 @@ import {
 } from "react-icons/fi";
 import BrandMark from "../../components/auth/BrandMark";
 import { authRoutes } from "../auth/authConfig";
-import { authService } from "../../services/authService";
+import { authService, tokenStorage } from "../../services/authService";
 
 type SettingsTab = "basic" | "password";
 type EmailModalStep = "enter" | "otp" | "success";
@@ -23,15 +23,44 @@ type AdminAccountSettingsPageProps = {
 };
 
 const otpLength = 6;
+const defaultProfilePhoto = "/admin-avatar.svg";
+
+const getStoredProfilePhoto = () => {
+  const admin = tokenStorage.getAdmin();
+
+  if (!admin) {
+    return defaultProfilePhoto;
+  }
+
+  const possiblePhoto =
+    (typeof admin.profileImage === "string" && admin.profileImage.trim()) ||
+    (typeof admin.image === "string" && admin.image.trim()) ||
+    (typeof admin.avatar === "string" && admin.avatar.trim()) ||
+    (typeof admin.photo === "string" && admin.photo.trim());
+
+  return possiblePhoto || defaultProfilePhoto;
+};
 
 function AdminAccountSettingsPage({
   onEmailChangeSuccess,
 }: AdminAccountSettingsPageProps) {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<SettingsTab>("basic");
-  const [fullName, setFullName] = useState("Christopher Nesscrance");
-  const [emailAddress, setEmailAddress] = useState("superadmin@whatyoueat.com");
-  const [profilePhotoSrc, setProfilePhotoSrc] = useState("/admin-avatar.svg");
+  const [fullName, setFullName] = useState(() => {
+    const admin = tokenStorage.getAdmin();
+    return (
+      (typeof admin?.name === "string" && admin.name.trim()) ||
+      "Christopher Nesscrance"
+    );
+  });
+  const [emailAddress, setEmailAddress] = useState(() => {
+    const admin = tokenStorage.getAdmin();
+    return (
+      (typeof admin?.email === "string" && admin.email.trim()) ||
+      "superadmin@whatyoueat.com"
+    );
+  });
+  const [profilePhotoSrc, setProfilePhotoSrc] = useState(getStoredProfilePhoto);
 
   const [nameModalOpen, setNameModalOpen] = useState(false);
   const [nameDraft, setNameDraft] = useState(fullName);
@@ -95,6 +124,7 @@ function AdminAccountSettingsPage({
 
       setFullName(updatedName);
       setNameDraft(updatedName);
+      tokenStorage.updateAdmin({ name: updatedName });
       setNameModalOpen(false);
       toast.success(response.message || "Name updated successfully.");
     } catch {
@@ -164,6 +194,10 @@ function AdminAccountSettingsPage({
         profilePhotoSrc;
 
       setProfilePhotoSrc(updatedPhoto);
+      tokenStorage.updateAdmin({
+        profileImage: updatedPhoto,
+        image: updatedPhoto,
+      });
       closeProfilePhotoModal();
       toast.success(response.message || "Profile photo updated successfully.");
     } catch {
@@ -186,7 +220,11 @@ function AdminAccountSettingsPage({
 
     try {
       const response = await authService.deleteAdminProfilePhoto();
-      setProfilePhotoSrc("/admin-avatar.svg");
+      setProfilePhotoSrc(defaultProfilePhoto);
+      tokenStorage.updateAdmin({
+        profileImage: "",
+        image: "",
+      });
       setProfilePhotoFile(null);
       setProfilePhotoPreview("");
       setRemovePhotoModalOpen(false);
