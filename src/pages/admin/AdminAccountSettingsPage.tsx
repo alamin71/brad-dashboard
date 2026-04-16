@@ -88,6 +88,15 @@ function AdminAccountSettingsPage({
     setOtp(Array.from({ length: otpLength }, () => ""));
   };
 
+  const handleEmailModalDismiss = () => {
+    if (emailModalStep === "success") {
+      handleSignInAfterEmailChange();
+      return;
+    }
+
+    closeEmailModal();
+  };
+
   const handleRequestEmailChange = async (
     event: FormEvent<HTMLFormElement>,
   ) => {
@@ -159,7 +168,6 @@ function AdminAccountSettingsPage({
       const updatedEmail = response.data.email?.trim() || normalizedEmail;
       setEmailAddress(updatedEmail);
       onEmailChangeSuccess?.(updatedEmail);
-      toast.success(response.message || "Email updated successfully.");
       setEmailModalStep("success");
     } catch {
       // API error toast is handled centrally in axios interceptor.
@@ -456,7 +464,7 @@ function AdminAccountSettingsPage({
         <div
           className="account-settings-modal"
           role="presentation"
-          onClick={closeEmailModal}
+          onClick={handleEmailModalDismiss}
         >
           <div
             className="account-settings-modal__panel"
@@ -468,7 +476,7 @@ function AdminAccountSettingsPage({
             <button
               type="button"
               className="account-settings-modal__close"
-              onClick={closeEmailModal}
+              onClick={handleEmailModalDismiss}
               aria-label="Close"
             >
               <FiX aria-hidden="true" focusable="false" />

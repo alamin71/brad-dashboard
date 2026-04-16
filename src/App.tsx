@@ -180,7 +180,9 @@ function App() {
     setPassword("");
     setShowPassword(false);
     setEmail(updatedEmail.trim());
-    toast.success("Email updated. Please sign in again.");
+    toast.success(
+      "OTP verified, email updated successfully. Please sign in again.",
+    );
   };
 
   return (
