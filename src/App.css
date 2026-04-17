@@ -963,61 +963,123 @@
 
 .dashboard-overview-chart__plot {
   margin-top: 14px;
-  min-height: 260px;
+  position: relative;
+  min-height: 320px;
+  border-radius: 14px;
+  border: 1px solid #f0e3df;
+  background: linear-gradient(180deg, #fff 0%, #fffaf8 100%);
+  overflow: hidden;
+}
+
+.dashboard-overview-chart__svg {
+  width: 100%;
+  height: 220px;
+  display: block;
+  overflow: visible;
+}
+
+.dashboard-overview-chart__area {
+  fill: url(#overviewLineGradient);
+  opacity: 0;
+  animation: dashboardChartFadeIn 0.4s ease forwards;
+  animation-delay: 0.15s;
+}
+
+.dashboard-overview-chart__line {
+  fill: none;
+  stroke: #dd0f0a;
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 900;
+  stroke-dashoffset: 900;
+  animation: dashboardLineDraw 1.15s ease forwards;
+}
+
+.dashboard-overview-chart__node {
+  fill: #dd0f0a;
+  stroke: #fff;
+  stroke-width: 3;
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: dashboardNodePop 0.45s ease forwards;
+}
+
+.dashboard-overview-chart__node-ring {
+  fill: rgba(221, 15, 10, 0.08);
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: dashboardNodeRing 0.45s ease forwards;
+}
+
+.dashboard-overview-chart__labels {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
-  align-items: end;
+  padding: 0 8px 14px;
 }
 
-.dashboard-overview-chart__column {
+.dashboard-overview-chart__label-group {
   display: grid;
-  grid-template-rows: auto minmax(170px, 1fr) auto;
-  gap: 8px;
+  gap: 4px;
+  text-align: center;
 }
 
 .dashboard-overview-chart__value {
   color: #2d2d2d;
   font-size: 0.82rem;
   font-weight: 800;
-  text-align: center;
-}
-
-.dashboard-overview-chart__bar-track {
-  position: relative;
-  height: 100%;
-  border-radius: 10px;
-  border: 1px solid #f0e3df;
-  background: #fff;
-  padding: 6px;
-  display: flex;
-  align-items: flex-end;
-}
-
-.dashboard-overview-chart__bar-fill {
-  width: 100%;
-  border-radius: 7px;
-  background: linear-gradient(180deg, #ff4f47 0%, #dd0f0a 100%);
-  box-shadow: 0 10px 18px rgba(221, 15, 10, 0.2);
-  transform-origin: bottom;
-  transform: scaleY(0);
-  animation: dashboardBarGrow 0.65s cubic-bezier(0.17, 0.84, 0.44, 1) forwards;
 }
 
 .dashboard-overview-chart__label {
   color: #666;
   font-size: 0.76rem;
-  text-align: center;
   line-height: 1.25;
 }
 
-@keyframes dashboardBarGrow {
+@keyframes dashboardChartFadeIn {
   from {
-    transform: scaleY(0);
+    opacity: 0;
   }
 
   to {
-    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+@keyframes dashboardLineDraw {
+  from {
+    stroke-dashoffset: 900;
+  }
+
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes dashboardNodePop {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes dashboardNodeRing {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
   }
 }
 
@@ -1845,8 +1907,11 @@
   }
 
   .dashboard-overview-chart__plot {
+    min-height: 360px;
+  }
+
+  .dashboard-overview-chart__labels {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    min-height: 340px;
   }
 
   .dashboard-users-grid {
@@ -1924,16 +1989,15 @@
   }
 
   .dashboard-overview-chart__plot {
+    min-height: 300px;
+  }
+
+  .dashboard-overview-chart__svg {
+    height: 200px;
+  }
+
+  .dashboard-overview-chart__labels {
     grid-template-columns: 1fr;
-    min-height: auto;
-  }
-
-  .dashboard-overview-chart__column {
-    grid-template-rows: auto auto auto;
-  }
-
-  .dashboard-overview-chart__bar-track {
-    min-height: 120px;
   }
 
   .dashboard-content-grid,

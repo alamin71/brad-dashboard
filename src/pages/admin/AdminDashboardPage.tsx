@@ -23,6 +23,26 @@ function AdminDashboardPage() {
   ];
 
   const maxValue = Math.max(...overviewItems.map((item) => item.value));
+  const chartWidth = 640;
+  const chartHeight = 220;
+  const chartPadding = 24;
+  const chartPoints = overviewItems.map((item, index) => {
+    const x =
+      chartPadding +
+      (index * (chartWidth - chartPadding * 2)) / (overviewItems.length - 1);
+    const y =
+      chartHeight -
+      chartPadding -
+      (item.value / maxValue) * (chartHeight - chartPadding * 2);
+
+    return { ...item, x, y };
+  });
+
+  const linePath = chartPoints
+    .map((point, index) => `${index === 0 ? "M" : "L"}${point.x} ${point.y}`)
+    .join(" ");
+
+  const pointAreaPath = `${linePath} L ${chartWidth - chartPadding} ${chartHeight - chartPadding} L ${chartPadding} ${chartHeight - chartPadding} Z`;
 
   return (
     <section className="dashboard-hero dashboard-hero--wide">
@@ -52,43 +72,76 @@ function AdminDashboardPage() {
       >
         <div className="dashboard-overview-chart__header">
           <h2>Overview Trend</h2>
-          <p>Animated comparison based on current overview data.</p>
+          <p>Animated line view based on current overview data.</p>
         </div>
 
         <div
-          className="dashboard-overview-chart__plot"
+          className="dashboard-overview-chart__plot dashboard-overview-chart__plot--line"
           role="img"
-          aria-label="Overview data bars"
+          aria-label="Overview data line chart"
         >
-          {overviewItems.map((item, index) => {
-            const barHeight = Math.max(
-              8,
-              Math.round((item.value / maxValue) * 100),
-            );
+          <svg
+            className="dashboard-overview-chart__svg"
+            viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+            preserveAspectRatio="none"
+          >
+            <defs>
+              <linearGradient
+                id="overviewLineGradient"
+                x1="0"
+                y1="0"
+                x2="0"
+                y2="1"
+              >
+                <stop offset="0%" stopColor="#ff4f47" stopOpacity="0.35" />
+                <stop offset="100%" stopColor="#ff4f47" stopOpacity="0.02" />
+              </linearGradient>
+            </defs>
 
-            return (
+            <path
+              className="dashboard-overview-chart__area"
+              d={pointAreaPath}
+            />
+            <path className="dashboard-overview-chart__line" d={linePath} />
+
+            {chartPoints.map((point, index) => (
+              <g
+                key={`${point.label}-point`}
+                className="dashboard-overview-chart__node-group"
+              >
+                <circle
+                  className="dashboard-overview-chart__node"
+                  cx={point.x}
+                  cy={point.y}
+                  r="6"
+                  style={{ animationDelay: `${index * 0.12}s` }}
+                />
+                <circle
+                  className="dashboard-overview-chart__node-ring"
+                  cx={point.x}
+                  cy={point.y}
+                  r="12"
+                  style={{ animationDelay: `${index * 0.12}s` }}
+                />
+              </g>
+            ))}
+          </svg>
+
+          <div className="dashboard-overview-chart__labels">
+            {chartPoints.map((point) => (
               <div
-                className="dashboard-overview-chart__column"
-                key={`${item.label}-bar`}
+                className="dashboard-overview-chart__label-group"
+                key={point.label}
               >
                 <span className="dashboard-overview-chart__value">
-                  {item.value}
+                  {point.value}
                 </span>
-                <div className="dashboard-overview-chart__bar-track">
-                  <div
-                    className="dashboard-overview-chart__bar-fill"
-                    style={{
-                      height: `${barHeight}%`,
-                      animationDelay: `${index * 0.1}s`,
-                    }}
-                  />
-                </div>
                 <span className="dashboard-overview-chart__label">
-                  {item.label}
+                  {point.label}
                 </span>
               </div>
-            );
-          })}
+            ))}
+          </div>
         </div>
       </section>
     </section>
