@@ -940,6 +940,87 @@
   line-height: 1.35;
 }
 
+.dashboard-overview-chart {
+  margin-top: 18px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid #f1dfda;
+  background: linear-gradient(180deg, #fff 0%, #fff8f4 100%);
+}
+
+.dashboard-overview-chart__header h2 {
+  margin: 0;
+  color: #2a2a2a;
+  font-size: 1.02rem;
+  font-weight: 800;
+}
+
+.dashboard-overview-chart__header p {
+  margin: 4px 0 0;
+  color: #8c8c8c;
+  font-size: 0.8rem;
+}
+
+.dashboard-overview-chart__plot {
+  margin-top: 14px;
+  min-height: 260px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+
+.dashboard-overview-chart__column {
+  display: grid;
+  grid-template-rows: auto minmax(170px, 1fr) auto;
+  gap: 8px;
+}
+
+.dashboard-overview-chart__value {
+  color: #2d2d2d;
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.dashboard-overview-chart__bar-track {
+  position: relative;
+  height: 100%;
+  border-radius: 10px;
+  border: 1px solid #f0e3df;
+  background: #fff;
+  padding: 6px;
+  display: flex;
+  align-items: flex-end;
+}
+
+.dashboard-overview-chart__bar-fill {
+  width: 100%;
+  border-radius: 7px;
+  background: linear-gradient(180deg, #ff4f47 0%, #dd0f0a 100%);
+  box-shadow: 0 10px 18px rgba(221, 15, 10, 0.2);
+  transform-origin: bottom;
+  transform: scaleY(0);
+  animation: dashboardBarGrow 0.65s cubic-bezier(0.17, 0.84, 0.44, 1) forwards;
+}
+
+.dashboard-overview-chart__label {
+  color: #666;
+  font-size: 0.76rem;
+  text-align: center;
+  line-height: 1.25;
+}
+
+@keyframes dashboardBarGrow {
+  from {
+    transform: scaleY(0);
+  }
+
+  to {
+    transform: scaleY(1);
+  }
+}
+
 .dashboard-section-header {
   display: flex;
   align-items: center;
@@ -1763,6 +1844,11 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .dashboard-overview-chart__plot {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    min-height: 340px;
+  }
+
   .dashboard-users-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1831,6 +1917,23 @@
   .dashboard-stats--grid,
   .dashboard-users-grid {
     grid-template-columns: 1fr;
+  }
+
+  .dashboard-overview-chart {
+    padding: 12px;
+  }
+
+  .dashboard-overview-chart__plot {
+    grid-template-columns: 1fr;
+    min-height: auto;
+  }
+
+  .dashboard-overview-chart__column {
+    grid-template-rows: auto auto auto;
+  }
+
+  .dashboard-overview-chart__bar-track {
+    min-height: 120px;
   }
 
   .dashboard-content-grid,
