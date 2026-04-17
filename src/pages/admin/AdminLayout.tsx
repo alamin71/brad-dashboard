@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
-import { FiBell, FiGrid, FiLogOut, FiSettings, FiUsers } from "react-icons/fi";
+import {
+  FiBell,
+  FiFileText,
+  FiGrid,
+  FiLogOut,
+  FiSettings,
+  FiUsers,
+} from "react-icons/fi";
 import { LuListCollapse } from "react-icons/lu";
 import {
   ADMIN_PROFILE_UPDATED_EVENT,
@@ -15,7 +22,7 @@ const navigationItems = [
   { label: "Dashboard", to: "/admin/dashboard", icon: FiGrid },
   { label: "Content", to: "/admin/content", icon: FiGrid },
   { label: "User Management", to: "/admin/user-management", icon: FiUsers },
-  { label: "Policy Pages", to: "/admin/policy-pages", icon: FiSettings },
+  { label: "Policy Pages", to: "/admin/policy-pages", icon: FiFileText },
   {
     label: "Account Settings",
     to: "/admin/account-settings",

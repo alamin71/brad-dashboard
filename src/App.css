@@ -1947,6 +1947,25 @@
   color: #b1b1b1;
 }
 
+.policy-editor__content ul,
+.policy-editor__content ol {
+  margin: 0.75rem 0;
+  padding-left: 1.5rem;
+}
+
+.policy-editor__content ul {
+  list-style: disc;
+}
+
+.policy-editor__content ol {
+  list-style: decimal;
+}
+
+.policy-editor__content li {
+  display: list-item;
+  margin: 0.2rem 0;
+}
+
 .policy-page__save-button {
   margin: 16px auto 0;
   display: block;
