@@ -6,10 +6,10 @@ import {
   FiBold,
   FiChevronDown,
   FiItalic,
-  FiLayers,
-  FiList,
+  FiAlignJustify,
   FiUnderline,
 } from "react-icons/fi";
+import { MdFormatListBulleted, MdFormatListNumbered } from "react-icons/md";
 import { toast } from "react-toastify";
 import {
   policyService,
@@ -97,6 +97,11 @@ Whether you are looking for trending restaurants, street food spots, or honest f
 
 const fontOptions = ["Inter", "Arial", "Georgia", "Times New Roman"];
 const fontSizeOptions = ["14", "16", "18", "20", "24", "28"];
+const alignOptions = ["left", "center", "right", "justify"] as const;
+const listOptions = ["none", "unordered", "ordered"] as const;
+
+type AlignType = (typeof alignOptions)[number];
+type ListType = (typeof listOptions)[number];
 
 const escapeHtml = (value: string) => {
   return value
@@ -195,8 +200,8 @@ function AdminPolicyPagesPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [fontFamily, setFontFamily] = useState("Inter");
   const [fontSize, setFontSize] = useState("24");
-  const [alignment, setAlignment] = useState("left");
-  const [listType, setListType] = useState("none");
+  const [alignment, setAlignment] = useState<AlignType>("left");
+  const [listType, setListType] = useState<ListType>("none");
   const editorRef = useRef<HTMLDivElement | null>(null);
   const selectionRef = useRef<Range | null>(null);
 
@@ -292,6 +297,8 @@ function AdminPolicyPagesPage() {
     setFontSize(size);
 
     withEditorSelection((editor) => {
+      // `fontSize` is more predictable with styleWithCSS disabled.
+      document.execCommand("styleWithCSS", false, "false");
       document.execCommand("fontSize", false, "7");
 
       editor.querySelectorAll("font[size='7']").forEach((fontElement) => {
@@ -300,6 +307,53 @@ function AdminPolicyPagesPage() {
         span.innerHTML = fontElement.innerHTML;
         fontElement.replaceWith(span);
       });
+
+      document.execCommand("styleWithCSS", false, "true");
+    });
+  };
+
+  const applyAlignment = (nextAlignment: AlignType) => {
+    setAlignment(nextAlignment);
+
+    if (nextAlignment === "center") {
+      applyCommand("justifyCenter");
+      return;
+    }
+
+    if (nextAlignment === "right") {
+      applyCommand("justifyRight");
+      return;
+    }
+
+    if (nextAlignment === "justify") {
+      applyCommand("justifyFull");
+      return;
+    }
+
+    applyCommand("justifyLeft");
+  };
+
+  const applyList = (nextList: ListType) => {
+    setListType(nextList);
+
+    if (nextList === "unordered") {
+      applyCommand("insertUnorderedList");
+      return;
+    }
+
+    if (nextList === "ordered") {
+      applyCommand("insertOrderedList");
+      return;
+    }
+
+    withEditorSelection(() => {
+      if (document.queryCommandState("insertOrderedList")) {
+        document.execCommand("insertOrderedList", false);
+      }
+
+      if (document.queryCommandState("insertUnorderedList")) {
+        document.execCommand("insertUnorderedList", false);
+      }
     });
   };
 
@@ -587,11 +641,14 @@ function AdminPolicyPagesPage() {
             className="policy-editor__tool policy-editor__tool--icon"
             aria-label="Align"
             onMouseDown={(event) => event.preventDefault()}
+            onClick={() => applyAlignment(alignment)}
           >
             {alignment === "center" ? (
               <FiAlignCenter aria-hidden="true" focusable="false" />
             ) : alignment === "right" ? (
               <FiAlignRight aria-hidden="true" focusable="false" />
+            ) : alignment === "justify" ? (
+              <FiAlignJustify aria-hidden="true" focusable="false" />
             ) : (
               <FiAlignLeft aria-hidden="true" focusable="false" />
             )}
@@ -609,25 +666,13 @@ function AdminPolicyPagesPage() {
             value={alignment}
             onMouseDown={saveSelection}
             onChange={(event) => {
-              const nextAlignment = event.target.value;
-              setAlignment(nextAlignment);
-
-              if (nextAlignment === "center") {
-                applyCommand("justifyCenter");
-                return;
-              }
-
-              if (nextAlignment === "right") {
-                applyCommand("justifyRight");
-                return;
-              }
-
-              applyCommand("justifyLeft");
+              applyAlignment(event.target.value as AlignType);
             }}
           >
             <option value="left">Left</option>
             <option value="center">Center</option>
             <option value="right">Right</option>
+            <option value="justify">Justify</option>
           </select>
 
           <button
@@ -635,24 +680,18 @@ function AdminPolicyPagesPage() {
             className="policy-editor__tool"
             aria-label="Bulleted list"
             onMouseDown={(event) => event.preventDefault()}
-            onClick={() => {
-              setListType("unordered");
-              applyCommand("insertUnorderedList");
-            }}
+            onClick={() => applyList("unordered")}
           >
-            <FiList aria-hidden="true" focusable="false" />
+            <MdFormatListBulleted aria-hidden="true" focusable="false" />
           </button>
           <button
             type="button"
             className="policy-editor__tool"
             aria-label="Numbered list"
             onMouseDown={(event) => event.preventDefault()}
-            onClick={() => {
-              setListType("ordered");
-              applyCommand("insertOrderedList");
-            }}
+            onClick={() => applyList("ordered")}
           >
-            <FiLayers aria-hidden="true" focusable="false" />
+            <MdFormatListNumbered aria-hidden="true" focusable="false" />
           </button>
           <label
             className="policy-editor__tool-label"
@@ -666,20 +705,7 @@ function AdminPolicyPagesPage() {
             value={listType}
             onMouseDown={saveSelection}
             onChange={(event) => {
-              const nextList = event.target.value;
-              setListType(nextList);
-
-              if (nextList === "unordered") {
-                applyCommand("insertUnorderedList");
-                return;
-              }
-
-              if (nextList === "ordered") {
-                applyCommand("insertOrderedList");
-                return;
-              }
-
-              applyCommand("outdent");
+              applyList(event.target.value as ListType);
             }}
           >
             <option value="none">None</option>
