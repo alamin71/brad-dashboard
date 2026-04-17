@@ -1,5 +1,6 @@
 import AuthCard from "../../components/auth/AuthCard";
 import BrandMark from "../../components/auth/BrandMark";
+import { FiEye, FiEyeOff } from "react-icons/fi";
 import type { NewPasswordPageProps } from "./authTypes";
 
 function NewPasswordPage({
@@ -40,7 +41,11 @@ function NewPasswordPage({
             }
             onClick={onToggleNewPassword}
           >
-            {showNewPassword ? "◔" : "◉"}
+            {showNewPassword ? (
+              <FiEyeOff aria-hidden="true" focusable="false" />
+            ) : (
+              <FiEye aria-hidden="true" focusable="false" />
+            )}
           </button>
         </div>
       </label>
@@ -65,7 +70,11 @@ function NewPasswordPage({
             }
             onClick={onToggleConfirmPassword}
           >
-            {showConfirmPassword ? "◔" : "◉"}
+            {showConfirmPassword ? (
+              <FiEyeOff aria-hidden="true" focusable="false" />
+            ) : (
+              <FiEye aria-hidden="true" focusable="false" />
+            )}
           </button>
         </div>
       </label>

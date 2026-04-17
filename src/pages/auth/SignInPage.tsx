@@ -1,5 +1,6 @@
 import AuthCard from "../../components/auth/AuthCard";
 import BrandMark from "../../components/auth/BrandMark";
+import { FiEye, FiEyeOff } from "react-icons/fi";
 import type { SignInPageProps } from "./authTypes";
 
 function SignInPage({
@@ -47,7 +48,11 @@ function SignInPage({
             aria-label={passwordVisible ? "Hide password" : "Show password"}
             onClick={onTogglePassword}
           >
-            {passwordVisible ? "◔" : "◉"}
+            {passwordVisible ? (
+              <FiEyeOff aria-hidden="true" focusable="false" />
+            ) : (
+              <FiEye aria-hidden="true" focusable="false" />
+            )}
           </button>
         </div>
       </label>

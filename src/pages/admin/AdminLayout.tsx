@@ -83,9 +83,6 @@ function AdminLayout({ onLogout }: AdminLayoutProps) {
               src="/brand-logo.png"
               alt="What you Eat?"
             />
-            <div className="dashboard-sidebar__brand-copy">
-              <span className="dashboard-sidebar__eyebrow">Dashboard</span>
-            </div>
           </div>
         </NavLink>
 

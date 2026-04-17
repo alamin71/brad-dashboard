@@ -26,6 +26,8 @@ type PolicyTab = {
   defaultContent: string;
 };
 
+const defaultPolicyFont = "Satoshi";
+
 const policyTabs: PolicyTab[] = [
   {
     id: "privacy",
@@ -95,7 +97,7 @@ Whether you are looking for trending restaurants, street food spots, or honest f
   },
 ];
 
-const fontOptions = ["Inter", "Arial", "Georgia", "Times New Roman"];
+const fontOptions = [defaultPolicyFont, "Arial", "Georgia", "Times New Roman"];
 const fontSizeOptions = ["14", "16", "18", "20", "24", "28"];
 const alignOptions = ["left", "center", "right", "justify"] as const;
 const listOptions = ["none", "unordered", "ordered"] as const;
@@ -198,7 +200,7 @@ function AdminPolicyPagesPage() {
     useState<Record<AdminPolicyType, boolean>>(buildFalseByTypeMap);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [fontFamily, setFontFamily] = useState("Inter");
+  const [fontFamily, setFontFamily] = useState(defaultPolicyFont);
   const [fontSize, setFontSize] = useState("24");
   const [alignment, setAlignment] = useState<AlignType>("left");
   const [listType, setListType] = useState<ListType>("none");
@@ -538,7 +540,7 @@ function AdminPolicyPagesPage() {
               onClick={() => {
                 persistCurrentDraft();
                 setActiveTab(tab.id);
-                setFontFamily("Inter");
+                setFontFamily(defaultPolicyFont);
                 setFontSize("24");
                 setAlignment("left");
                 setListType("none");
