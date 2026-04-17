@@ -1,4 +1,88 @@
+import { useMemo, useState } from "react";
+import { FiFilter } from "react-icons/fi";
+
+type MonthlyPoint = {
+  month: string;
+  value: number;
+};
+
+const monthLabels = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
+
+const buildMonthlySeries = (seed: number): MonthlyPoint[] => {
+  return monthLabels.map((month, index) => {
+    const seasonalWave = Math.sin((index / 11) * Math.PI * 2) * 18;
+    const trend = index * 9;
+    const noise = ((seed + index * 17) % 13) * 2;
+
+    return {
+      month,
+      value: Math.max(18, Math.round(seed + trend + seasonalWave + noise)),
+    };
+  });
+};
+
+const runningYear = new Date().getFullYear();
+
+const yearSeriesMap: Record<number, MonthlyPoint[]> = {
+  [runningYear]: buildMonthlySeries(96),
+  [runningYear - 1]: buildMonthlySeries(74),
+  [runningYear - 2]: buildMonthlySeries(54),
+  [runningYear - 3]: buildMonthlySeries(62),
+};
+
+const getAvailableYears = () => {
+  const years = [
+    runningYear,
+    runningYear - 1,
+    runningYear - 2,
+    runningYear - 3,
+  ];
+
+  return years.filter((year) => Boolean(yearSeriesMap[year]));
+};
+
+const buildSmoothPath = (points: Array<{ x: number; y: number }>) => {
+  if (points.length === 0) {
+    return "";
+  }
+
+  if (points.length === 1) {
+    return `M${points[0].x} ${points[0].y}`;
+  }
+
+  const path = [`M${points[0].x} ${points[0].y}`];
+
+  for (let index = 0; index < points.length - 1; index += 1) {
+    const current = points[index];
+    const next = points[index + 1];
+    const controlX = (current.x + next.x) / 2;
+
+    path.push(
+      `C${controlX} ${current.y}, ${controlX} ${next.y}, ${next.x} ${next.y}`,
+    );
+  }
+
+  return path.join(" ");
+};
+
 function AdminDashboardPage() {
+  const [selectedYear, setSelectedYear] = useState(() => {
+    return yearSeriesMap[runningYear] ? runningYear : getAvailableYears()[0];
+  });
+
   const overviewItems = [
     {
       label: "Total User",
@@ -22,14 +106,17 @@ function AdminDashboardPage() {
     },
   ];
 
-  const maxValue = Math.max(...overviewItems.map((item) => item.value));
+  const yearOptions = useMemo(() => getAvailableYears(), []);
+  const monthlySeries =
+    yearSeriesMap[selectedYear] ?? yearSeriesMap[runningYear];
+  const maxValue = Math.max(...monthlySeries.map((item) => item.value));
   const chartWidth = 640;
   const chartHeight = 220;
   const chartPadding = 24;
-  const chartPoints = overviewItems.map((item, index) => {
+  const chartPoints = monthlySeries.map((item, index) => {
     const x =
       chartPadding +
-      (index * (chartWidth - chartPadding * 2)) / (overviewItems.length - 1);
+      (index * (chartWidth - chartPadding * 2)) / (monthlySeries.length - 1);
     const y =
       chartHeight -
       chartPadding -
@@ -38,9 +125,7 @@ function AdminDashboardPage() {
     return { ...item, x, y };
   });
 
-  const linePath = chartPoints
-    .map((point, index) => `${index === 0 ? "M" : "L"}${point.x} ${point.y}`)
-    .join(" ");
+  const linePath = buildSmoothPath(chartPoints);
 
   const pointAreaPath = `${linePath} L ${chartWidth - chartPadding} ${chartHeight - chartPadding} L ${chartPadding} ${chartHeight - chartPadding} Z`;
 
@@ -72,7 +157,32 @@ function AdminDashboardPage() {
       >
         <div className="dashboard-overview-chart__header">
           <h2>Overview Trend</h2>
-          <p>Animated line view based on current overview data.</p>
+          <div className="dashboard-overview-chart__filter">
+            <span
+              className="dashboard-overview-chart__filter-icon"
+              aria-hidden="true"
+            >
+              <FiFilter />
+            </span>
+            <label
+              className="dashboard-overview-chart__filter-label"
+              htmlFor="dashboard-year-filter"
+            >
+              Year
+            </label>
+            <select
+              id="dashboard-year-filter"
+              className="dashboard-overview-chart__filter-select"
+              value={selectedYear}
+              onChange={(event) => setSelectedYear(Number(event.target.value))}
+            >
+              {yearOptions.map((year) => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div
@@ -106,7 +216,7 @@ function AdminDashboardPage() {
 
             {chartPoints.map((point, index) => (
               <g
-                key={`${point.label}-point`}
+                key={`${point.month}-point`}
                 className="dashboard-overview-chart__node-group"
               >
                 <circle
@@ -131,13 +241,13 @@ function AdminDashboardPage() {
             {chartPoints.map((point) => (
               <div
                 className="dashboard-overview-chart__label-group"
-                key={point.label}
+                key={point.month}
               >
                 <span className="dashboard-overview-chart__value">
                   {point.value}
                 </span>
                 <span className="dashboard-overview-chart__label">
-                  {point.label}
+                  {point.month}
                 </span>
               </div>
             ))}
