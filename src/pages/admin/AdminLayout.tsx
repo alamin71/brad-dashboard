@@ -79,16 +79,22 @@ function AdminLayout({ onLogout }: AdminLayoutProps) {
       <aside
         className={`dashboard-sidebar ${collapsed ? "dashboard-sidebar--collapsed" : ""}`}
       >
-        <div className="dashboard-sidebar__brand">
-          <img
-            className="dashboard-sidebar__logo"
-            src="/brand-logo.png"
-            alt="What you Eat?"
-          />
-          <div className="dashboard-sidebar__brand-copy">
-            <span className="dashboard-sidebar__eyebrow">Dashboard</span>
+        <NavLink
+          to="/admin/dashboard"
+          className="dashboard-sidebar__brand-link"
+          aria-label="Go to dashboard home"
+        >
+          <div className="dashboard-sidebar__brand">
+            <img
+              className="dashboard-sidebar__logo"
+              src="/brand-logo.png"
+              alt="What you Eat?"
+            />
+            <div className="dashboard-sidebar__brand-copy">
+              <span className="dashboard-sidebar__eyebrow">Dashboard</span>
+            </div>
           </div>
-        </div>
+        </NavLink>
 
         <nav className="dashboard-nav" aria-label="Dashboard navigation">
           {navigationItems.map((item) => {

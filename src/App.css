@@ -351,6 +351,19 @@
   padding: 4px 6px 12px;
 }
 
+.dashboard-sidebar__brand-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.dashboard-sidebar__brand-link:focus-visible {
+  outline: 2px solid rgba(216, 11, 6, 0.34);
+  outline-offset: 2px;
+}
+
 .dashboard-sidebar__logo {
   width: 72px;
   height: auto;
@@ -994,6 +1007,10 @@
   justify-content: center;
 }
 
+.dashboard-shell--collapsed .dashboard-sidebar__brand-link {
+  width: 100%;
+}
+
 .dashboard-shell--collapsed .dashboard-nav__item {
   justify-content: center;
   padding-inline: 0;
@@ -1450,6 +1467,9 @@
   box-shadow: none;
   border: 1px solid #e8e8e8;
   background: #fff;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .policy-page__title {
@@ -1468,11 +1488,11 @@
 }
 
 .policy-page__tab {
+  position: relative;
   min-height: 34px;
-  padding: 0 16px;
+  padding: 0 18px;
   border: 0;
   border-radius: 2px 2px 0 0;
-  border-bottom: 3px solid transparent;
   background: transparent;
   color: #666;
   font-size: 0.96rem;
@@ -1480,10 +1500,24 @@
   cursor: pointer;
 }
 
+.policy-page__tab::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 3px;
+  border-radius: 3px;
+  background: transparent;
+}
+
 .policy-page__tab--active {
   color: #dc1212;
   font-weight: 700;
-  border-bottom-color: #dc1212;
+}
+
+.policy-page__tab--active::after {
+  background: #dc1212;
 }
 
 .policy-editor {
@@ -1492,6 +1526,9 @@
   border-radius: 10px;
   overflow: hidden;
   background: #fff;
+  display: flex;
+  flex-direction: column;
+  height: clamp(360px, 62vh, 760px);
 }
 
 .policy-editor__toolbar {
@@ -1503,6 +1540,7 @@
   padding: 8px 10px;
   border-bottom: 1px solid #e6e6e6;
   background: #fff;
+  flex-shrink: 0;
 }
 
 .policy-editor__tool-label {
@@ -1584,10 +1622,11 @@
 
 .policy-editor__content {
   width: 100%;
-  min-height: 420px;
+  min-height: 0;
   border: 0;
   padding: 14px;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
   color: #4a4a4a;
   font-size: 0.98rem;
   line-height: 1.6;
@@ -1596,6 +1635,7 @@
   direction: ltr;
   unicode-bidi: isolate;
   text-align: left;
+  flex: 1;
 }
 
 .policy-editor__content:empty::before {
@@ -1679,7 +1719,7 @@
   }
 
   .policy-editor__content {
-    min-height: 320px;
+    font-size: 0.94rem;
   }
 }
 
@@ -1791,7 +1831,7 @@
   }
 
   .policy-editor__content {
-    min-height: 260px;
+    min-height: 220px;
     padding: 12px;
     font-size: 0.9rem;
   }
