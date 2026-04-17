@@ -414,15 +414,6 @@ function AdminDashboardPage() {
                     />
                   </g>
                 ))}
-
-                <text
-                  className="dashboard-overview-chart__series-label"
-                  x={metric.points[0].x + 8}
-                  y={metric.points[0].y - (10 - metricIndex * 2)}
-                  fill={metric.color}
-                >
-                  {metric.label}
-                </text>
               </g>
             ))}
           </svg>
