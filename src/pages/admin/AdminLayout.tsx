@@ -1,14 +1,7 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
-import {
-  FiBell,
-  FiGrid,
-  FiLogOut,
-  FiMenu,
-  FiSettings,
-  FiUsers,
-  FiX,
-} from "react-icons/fi";
+import { FiBell, FiGrid, FiLogOut, FiSettings, FiUsers } from "react-icons/fi";
+import { LuListCollapse } from "react-icons/lu";
 import {
   ADMIN_PROFILE_UPDATED_EVENT,
   tokenStorage,
@@ -137,17 +130,16 @@ function AdminLayout({ onLogout }: AdminLayoutProps) {
       <section className="dashboard-content">
         <header className="dashboard-topbar">
           <button
-            className={`dashboard-icon-button dashboard-icon-button--toggle ${collapsed ? "dashboard-icon-button--toggle-collapsed" : ""}`}
+            className="dashboard-icon-button dashboard-icon-button--toggle"
             type="button"
             onClick={() => setCollapsed((current) => !current)}
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
-            <span className="dashboard-toggle-icon" aria-hidden="true">
-              {collapsed ? (
-                <FiMenu focusable="false" />
-              ) : (
-                <FiX focusable="false" />
-              )}
+            <span
+              className={`dashboard-toggle-icon ${collapsed ? "dashboard-toggle-icon--collapsed" : "dashboard-toggle-icon--expanded"}`}
+              aria-hidden="true"
+            >
+              <LuListCollapse focusable="false" />
             </span>
           </button>
 
