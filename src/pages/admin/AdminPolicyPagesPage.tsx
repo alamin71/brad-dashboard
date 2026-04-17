@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  FiAlignCenter,
   FiAlignLeft,
+  FiAlignRight,
   FiBold,
+  FiChevronDown,
   FiItalic,
   FiLayers,
   FiList,
@@ -120,6 +123,12 @@ const normalizePolicyContent = (value: string) => {
   return isLikelyHtml(value) ? value : plainTextToHtml(value);
 };
 
+const forceLtrContent = (value: string) => {
+  return value
+    .replace(/\sdir=("|')rtl\1/gi, "")
+    .replace(/direction\s*:\s*rtl/gi, "direction: ltr");
+};
+
 const buildDefaultDrafts = (): Record<PolicyTabId, string> => {
   return policyTabs.reduce(
     (acc, tab) => {
@@ -186,6 +195,8 @@ function AdminPolicyPagesPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [fontFamily, setFontFamily] = useState("Inter");
   const [fontSize, setFontSize] = useState("24");
+  const [alignment, setAlignment] = useState("left");
+  const [listType, setListType] = useState("none");
   const editorRef = useRef<HTMLDivElement | null>(null);
   const selectionRef = useRef<Range | null>(null);
 
@@ -231,7 +242,7 @@ function AdminPolicyPagesPage() {
     document.execCommand("styleWithCSS", false, "true");
     operation(editor);
 
-    const nextHtml = editor.innerHTML;
+    const nextHtml = forceLtrContent(editor.innerHTML);
 
     setDrafts((current) => ({
       ...current,
@@ -280,7 +291,9 @@ function AdminPolicyPagesPage() {
 
           for (const policy of policies) {
             const tabId = typeToTabIdMap[policy.type];
-            nextDrafts[tabId] = normalizePolicyContent(policy.content);
+            nextDrafts[tabId] = forceLtrContent(
+              normalizePolicyContent(policy.content),
+            );
           }
 
           return nextDrafts;
@@ -328,7 +341,7 @@ function AdminPolicyPagesPage() {
         const tabId = typeToTabIdMap[policy.type];
         setDrafts((current) => ({
           ...current,
-          [tabId]: normalizePolicyContent(policy.content),
+          [tabId]: forceLtrContent(normalizePolicyContent(policy.content)),
         }));
       } finally {
         if (isMounted) {
@@ -378,7 +391,7 @@ function AdminPolicyPagesPage() {
 
       setDrafts((current) => ({
         ...current,
-        [latestTabId]: normalizePolicyContent(latest.content),
+        [latestTabId]: forceLtrContent(normalizePolicyContent(latest.content)),
       }));
 
       setExistingByType((current) => ({
@@ -421,6 +434,8 @@ function AdminPolicyPagesPage() {
                 setActiveTab(tab.id);
                 setFontFamily("Inter");
                 setFontSize("24");
+                setAlignment("left");
+                setListType("none");
               }}
             >
               {tab.label}
@@ -454,6 +469,7 @@ function AdminPolicyPagesPage() {
               setFontFamily(nextFont);
               applyCommand("fontName", nextFont);
             }}
+            onMouseDown={(event) => event.preventDefault()}
           >
             {fontOptions.map((option) => (
               <option key={option} value={option}>
@@ -473,6 +489,7 @@ function AdminPolicyPagesPage() {
             className="policy-editor__tool-select policy-editor__tool-select--size"
             value={fontSize}
             onChange={(event) => applyFontSize(event.target.value)}
+            onMouseDown={(event) => event.preventDefault()}
           >
             {fontSizeOptions.map((option) => (
               <option key={option} value={option}>
@@ -515,19 +532,61 @@ function AdminPolicyPagesPage() {
 
           <button
             type="button"
-            className="policy-editor__tool"
-            aria-label="Align left"
+            className="policy-editor__tool policy-editor__tool--icon"
+            aria-label="Align"
             onMouseDown={(event) => event.preventDefault()}
-            onClick={() => applyCommand("justifyLeft")}
           >
-            <FiAlignLeft aria-hidden="true" focusable="false" />
+            {alignment === "center" ? (
+              <FiAlignCenter aria-hidden="true" focusable="false" />
+            ) : alignment === "right" ? (
+              <FiAlignRight aria-hidden="true" focusable="false" />
+            ) : (
+              <FiAlignLeft aria-hidden="true" focusable="false" />
+            )}
+            <FiChevronDown aria-hidden="true" focusable="false" />
           </button>
+          <label
+            className="policy-editor__tool-label"
+            htmlFor="policy-align-select"
+          >
+            Align
+          </label>
+          <select
+            id="policy-align-select"
+            className="policy-editor__tool-select policy-editor__tool-select--align"
+            value={alignment}
+            onMouseDown={(event) => event.preventDefault()}
+            onChange={(event) => {
+              const nextAlignment = event.target.value;
+              setAlignment(nextAlignment);
+
+              if (nextAlignment === "center") {
+                applyCommand("justifyCenter");
+                return;
+              }
+
+              if (nextAlignment === "right") {
+                applyCommand("justifyRight");
+                return;
+              }
+
+              applyCommand("justifyLeft");
+            }}
+          >
+            <option value="left">Left</option>
+            <option value="center">Center</option>
+            <option value="right">Right</option>
+          </select>
+
           <button
             type="button"
             className="policy-editor__tool"
             aria-label="Bulleted list"
             onMouseDown={(event) => event.preventDefault()}
-            onClick={() => applyCommand("insertUnorderedList")}
+            onClick={() => {
+              setListType("unordered");
+              applyCommand("insertUnorderedList");
+            }}
           >
             <FiList aria-hidden="true" focusable="false" />
           </button>
@@ -536,10 +595,45 @@ function AdminPolicyPagesPage() {
             className="policy-editor__tool"
             aria-label="Numbered list"
             onMouseDown={(event) => event.preventDefault()}
-            onClick={() => applyCommand("insertOrderedList")}
+            onClick={() => {
+              setListType("ordered");
+              applyCommand("insertOrderedList");
+            }}
           >
             <FiLayers aria-hidden="true" focusable="false" />
           </button>
+          <label
+            className="policy-editor__tool-label"
+            htmlFor="policy-list-select"
+          >
+            List
+          </label>
+          <select
+            id="policy-list-select"
+            className="policy-editor__tool-select policy-editor__tool-select--list"
+            value={listType}
+            onMouseDown={(event) => event.preventDefault()}
+            onChange={(event) => {
+              const nextList = event.target.value;
+              setListType(nextList);
+
+              if (nextList === "unordered") {
+                applyCommand("insertUnorderedList");
+                return;
+              }
+
+              if (nextList === "ordered") {
+                applyCommand("insertOrderedList");
+                return;
+              }
+
+              applyCommand("outdent");
+            }}
+          >
+            <option value="none">None</option>
+            <option value="unordered">Bulleted</option>
+            <option value="ordered">Numbered</option>
+          </select>
         </div>
 
         <label className="policy-editor__label" htmlFor="policy-editor-content">
@@ -550,6 +644,7 @@ function AdminPolicyPagesPage() {
           id="policy-editor-content"
           ref={setEditorRef}
           className="policy-editor__content"
+          dir="ltr"
           contentEditable={!isLoading && !isSaving}
           suppressContentEditableWarning
           data-placeholder="Write policy content here..."
@@ -557,7 +652,8 @@ function AdminPolicyPagesPage() {
           onKeyUp={saveSelection}
           onBlur={saveSelection}
           onInput={(event) => {
-            const nextValue = event.currentTarget.innerHTML;
+            const nextValue = forceLtrContent(event.currentTarget.innerHTML);
+            event.currentTarget.setAttribute("dir", "ltr");
             setDrafts((current) => ({
               ...current,
               [activeTab]: nextValue,

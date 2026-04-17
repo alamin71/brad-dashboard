@@ -1528,6 +1528,14 @@
   min-width: 62px;
 }
 
+.policy-editor__tool-select--align {
+  min-width: 76px;
+}
+
+.policy-editor__tool-select--list {
+  min-width: 92px;
+}
+
 .policy-editor__tool {
   min-width: 30px;
   height: 30px;
@@ -1541,6 +1549,12 @@
   justify-content: center;
   gap: 6px;
   cursor: pointer;
+}
+
+.policy-editor__tool--icon {
+  min-width: 42px;
+  justify-content: space-between;
+  border: 1px solid #dfdfdf;
 }
 
 .policy-editor__tool--select {
@@ -1579,6 +1593,9 @@
   line-height: 1.6;
   outline: none;
   white-space: normal;
+  direction: ltr;
+  unicode-bidi: plaintext;
+  text-align: left;
 }
 
 .policy-editor__content:empty::before {
@@ -1767,6 +1784,10 @@
   .policy-editor__tool-select {
     min-width: 68px;
     font-size: 0.8rem;
+  }
+
+  .policy-editor__tool-select--list {
+    min-width: 82px;
   }
 
   .policy-editor__content {
