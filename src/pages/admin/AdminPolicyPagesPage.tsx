@@ -4,8 +4,8 @@ import {
   FiBold,
   FiChevronDown,
   FiItalic,
+  FiLayers,
   FiList,
-  FiListOl,
   FiUnderline,
 } from "react-icons/fi";
 
@@ -195,7 +195,7 @@ function AdminPolicyPagesPage() {
             className="policy-editor__tool"
             aria-label="Numbered list"
           >
-            <FiListOl aria-hidden="true" focusable="false" />
+            <FiLayers aria-hidden="true" focusable="false" />
           </button>
         </div>
 
