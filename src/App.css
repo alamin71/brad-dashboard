@@ -313,6 +313,7 @@
   min-height: 100vh;
   display: grid;
   grid-template-columns: 260px minmax(0, 1fr);
+  transition: grid-template-columns 0.34s cubic-bezier(0.22, 1, 0.36, 1);
   background:
     radial-gradient(
       circle at top left,
@@ -342,6 +343,9 @@
   background: rgba(255, 255, 255, 0.84);
   border-right: 1px solid rgba(240, 197, 178, 0.35);
   backdrop-filter: blur(14px);
+  transition:
+    padding 0.34s cubic-bezier(0.22, 1, 0.36, 1),
+    gap 0.34s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .dashboard-sidebar__brand {
@@ -382,6 +386,7 @@
 .dashboard-nav {
   display: grid;
   gap: 10px;
+  transition: gap 0.28s ease;
 }
 
 .dashboard-nav__item {
@@ -400,6 +405,13 @@
   font-weight: 700;
   text-align: left;
   cursor: pointer;
+  transition:
+    width 0.3s ease,
+    min-height 0.3s ease,
+    border-radius 0.3s ease,
+    padding 0.3s ease,
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .dashboard-nav__item--active {
@@ -461,6 +473,24 @@
 
 .dashboard-icon-button--toggle {
   background: rgba(255, 255, 255, 0.96);
+}
+
+.dashboard-toggle-icon {
+  display: inline-grid;
+  place-items: center;
+  font-size: 1.08rem;
+  transition:
+    transform 0.24s ease,
+    opacity 0.2s ease;
+}
+
+.dashboard-icon-button--toggle-collapsed .dashboard-toggle-icon {
+  transform: rotate(0deg);
+}
+
+.dashboard-icon-button--toggle:not(.dashboard-icon-button--toggle-collapsed)
+  .dashboard-toggle-icon {
+  transform: rotate(90deg);
 }
 
 .dashboard-icon-button--bell {
@@ -993,14 +1023,32 @@
   font-size: 0.72rem;
 }
 
+.dashboard-sidebar__brand-copy,
+.dashboard-nav__label,
+.dashboard-sidebar__logout span {
+  display: inline-block;
+  max-width: 180px;
+  opacity: 1;
+  transform: translateX(0);
+  overflow: hidden;
+  white-space: nowrap;
+  transition:
+    max-width 0.26s ease,
+    opacity 0.2s ease,
+    transform 0.26s ease;
+}
+
 .dashboard-shell--collapsed .dashboard-sidebar__brand-copy,
 .dashboard-shell--collapsed .dashboard-nav__label,
 .dashboard-shell--collapsed .dashboard-sidebar__logout span {
-  display: none;
+  max-width: 0;
+  opacity: 0;
+  transform: translateX(-8px);
 }
 
 .dashboard-shell--collapsed .dashboard-sidebar {
   align-items: center;
+  gap: 14px;
 }
 
 .dashboard-shell--collapsed .dashboard-sidebar__brand {
@@ -1013,7 +1061,22 @@
 
 .dashboard-shell--collapsed .dashboard-nav__item {
   justify-content: center;
-  padding-inline: 0;
+  width: 44px;
+  min-height: 44px;
+  height: 44px;
+  padding: 0;
+  margin-inline: auto;
+  border-radius: 12px;
+}
+
+.dashboard-shell--collapsed .dashboard-nav {
+  width: 100%;
+  justify-items: center;
+  gap: 12px;
+}
+
+.dashboard-shell--collapsed .dashboard-nav__item--active {
+  box-shadow: 0 8px 16px rgba(216, 11, 6, 0.24);
 }
 
 .dashboard-shell--collapsed .dashboard-sidebar__logout {
@@ -1687,7 +1750,9 @@
   .dashboard-shell--collapsed .dashboard-sidebar__brand-copy,
   .dashboard-shell--collapsed .dashboard-nav__label,
   .dashboard-shell--collapsed .dashboard-sidebar__logout span {
-    display: inline;
+    max-width: 180px;
+    opacity: 1;
+    transform: translateX(0);
   }
 
   .dashboard-sidebar__logout {

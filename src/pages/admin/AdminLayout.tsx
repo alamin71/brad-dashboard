@@ -2,12 +2,12 @@ import { useEffect, useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import {
   FiBell,
-  FiChevronLeft,
-  FiChevronRight,
   FiGrid,
   FiLogOut,
+  FiMenu,
   FiSettings,
   FiUsers,
+  FiX,
 } from "react-icons/fi";
 import {
   ADMIN_PROFILE_UPDATED_EVENT,
@@ -137,16 +137,18 @@ function AdminLayout({ onLogout }: AdminLayoutProps) {
       <section className="dashboard-content">
         <header className="dashboard-topbar">
           <button
-            className="dashboard-icon-button dashboard-icon-button--toggle"
+            className={`dashboard-icon-button dashboard-icon-button--toggle ${collapsed ? "dashboard-icon-button--toggle-collapsed" : ""}`}
             type="button"
             onClick={() => setCollapsed((current) => !current)}
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
-            {collapsed ? (
-              <FiChevronRight aria-hidden="true" focusable="false" />
-            ) : (
-              <FiChevronLeft aria-hidden="true" focusable="false" />
-            )}
+            <span className="dashboard-toggle-icon" aria-hidden="true">
+              {collapsed ? (
+                <FiMenu focusable="false" />
+              ) : (
+                <FiX focusable="false" />
+              )}
+            </span>
           </button>
 
           <div className="dashboard-topbar__spacer" />
