@@ -40,6 +40,7 @@ export const API_CONFIG = {
     adminVerifyChangeEmailOtp: "/api/v1/admin/change-email/verify-otp",
     adminProfileUpdate: "/api/v1/admin/profile/update",
     adminProfilePhotoDelete: "/api/v1/admin/profile/photo",
+    adminPolicy: "/api/v1/admin/policy",
   },
 };
 

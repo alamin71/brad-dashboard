@@ -1,27 +1,35 @@
-import { useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   FiAlignLeft,
   FiBold,
-  FiChevronDown,
   FiItalic,
   FiLayers,
   FiList,
   FiUnderline,
 } from "react-icons/fi";
+import { toast } from "react-toastify";
+import {
+  policyService,
+  type AdminPolicyType,
+} from "../../services/policyService";
 
 type PolicyTabId = "privacy" | "terms" | "about";
 
 type PolicyTab = {
   id: PolicyTabId;
   label: string;
-  content: string;
+  type: AdminPolicyType;
+  title: string;
+  defaultContent: string;
 };
 
 const policyTabs: PolicyTab[] = [
   {
     id: "privacy",
     label: "Privacy Policy",
-    content: `Effective Date: January 2026
+    type: "privacy-policy",
+    title: "Privacy-Policy",
+    defaultContent: `Effective Date: January 2026
 
 Your privacy is important to us. This Privacy Policy explains how we collect, use, and protect your information when you use our application.
 
@@ -45,7 +53,9 @@ We use the collected information to:
   {
     id: "terms",
     label: "Terms & Conditions",
-    content: `Effective Date: January 2026
+    type: "terms-conditions",
+    title: "Terms-Conditions",
+    defaultContent: `Effective Date: January 2026
 
 By using this application, you agree to the following terms and conditions.
 
@@ -70,7 +80,9 @@ Users must not:
   {
     id: "about",
     label: "About this app",
-    content: `This app is designed for food lovers and food explorers who enjoy discovering and sharing great food experiences.
+    type: "about-app",
+    title: "About-App",
+    defaultContent: `This app is designed for food lovers and food explorers who enjoy discovering and sharing great food experiences.
 
 Users can share food photos, reviews, and recommendations while discovering restaurants, cafes, street food, and hidden gems through an interactive map and community-driven content.
 
@@ -80,25 +92,309 @@ Whether you are looking for trending restaurants, street food spots, or honest f
   },
 ];
 
-const toolbarItems = [
-  { id: "font", label: "Inter" },
-  { id: "size", label: "24" },
-];
+const fontOptions = ["Inter", "Arial", "Georgia", "Times New Roman"];
+const fontSizeOptions = ["14", "16", "18", "20", "24", "28"];
+
+const escapeHtml = (value: string) => {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+};
+
+const plainTextToHtml = (value: string) => {
+  return escapeHtml(value).replaceAll("\n", "<br>");
+};
+
+const isLikelyHtml = (value: string) => {
+  return /<[^>]+>/.test(value);
+};
+
+const normalizePolicyContent = (value: string) => {
+  if (!value.trim()) {
+    return "";
+  }
+
+  return isLikelyHtml(value) ? value : plainTextToHtml(value);
+};
+
+const buildDefaultDrafts = (): Record<PolicyTabId, string> => {
+  return policyTabs.reduce(
+    (acc, tab) => {
+      acc[tab.id] = plainTextToHtml(tab.defaultContent);
+      return acc;
+    },
+    {
+      privacy: "",
+      terms: "",
+      about: "",
+    } as Record<PolicyTabId, string>,
+  );
+};
+
+const buildFalseByTypeMap = () => {
+  return policyTabs.reduce(
+    (acc, tab) => {
+      acc[tab.type] = false;
+      return acc;
+    },
+    {
+      "privacy-policy": false,
+      "terms-conditions": false,
+      "about-app": false,
+    } as Record<AdminPolicyType, boolean>,
+  );
+};
+
+const getErrorMessage = (error: unknown) => {
+  const maybeError = error as {
+    response?: {
+      data?: {
+        message?: string;
+      };
+    };
+  };
+
+  if (typeof maybeError.response?.data?.message === "string") {
+    return maybeError.response.data.message;
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "";
+};
+
+const typeToTabIdMap: Record<AdminPolicyType, PolicyTabId> = {
+  "privacy-policy": "privacy",
+  "terms-conditions": "terms",
+  "about-app": "about",
+};
 
 function AdminPolicyPagesPage() {
   const [activeTab, setActiveTab] = useState<PolicyTabId>("privacy");
-  const [drafts, setDrafts] = useState<Record<PolicyTabId, string>>(() => ({
-    privacy: policyTabs.find((tab) => tab.id === "privacy")?.content ?? "",
-    terms: policyTabs.find((tab) => tab.id === "terms")?.content ?? "",
-    about: policyTabs.find((tab) => tab.id === "about")?.content ?? "",
-  }));
+  const [drafts, setDrafts] =
+    useState<Record<PolicyTabId, string>>(buildDefaultDrafts);
+  const [existingByType, setExistingByType] =
+    useState<Record<AdminPolicyType, boolean>>(buildFalseByTypeMap);
+  const [fetchedByType, setFetchedByType] =
+    useState<Record<AdminPolicyType, boolean>>(buildFalseByTypeMap);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [fontFamily, setFontFamily] = useState("Inter");
+  const [fontSize, setFontSize] = useState("24");
+  const editorRef = useRef<HTMLDivElement | null>(null);
+  const selectionRef = useRef<Range | null>(null);
+
+  const activeTabConfig =
+    policyTabs.find((tab) => tab.id === activeTab) ?? policyTabs[0];
 
   const activeContent = drafts[activeTab];
 
-  const activeLabel = useMemo(
-    () => policyTabs.find((tab) => tab.id === activeTab)?.label ?? "",
-    [activeTab],
-  );
+  const setEditorRef = (node: HTMLDivElement | null) => {
+    editorRef.current = node;
+  };
+
+  const saveSelection = () => {
+    const selection = window.getSelection();
+
+    if (!selection || selection.rangeCount === 0) {
+      return;
+    }
+
+    selectionRef.current = selection.getRangeAt(0);
+  };
+
+  const restoreSelection = () => {
+    const selection = window.getSelection();
+
+    if (!selection || !selectionRef.current) {
+      return;
+    }
+
+    selection.removeAllRanges();
+    selection.addRange(selectionRef.current);
+  };
+
+  const withEditorSelection = (operation: (editor: HTMLDivElement) => void) => {
+    const editor = editorRef.current;
+
+    if (!editor) {
+      return;
+    }
+
+    editor.focus();
+    restoreSelection();
+    document.execCommand("styleWithCSS", false, "true");
+    operation(editor);
+
+    const nextHtml = editor.innerHTML;
+
+    setDrafts((current) => ({
+      ...current,
+      [activeTab]: nextHtml,
+    }));
+
+    saveSelection();
+  };
+
+  const applyCommand = (command: string, value?: string) => {
+    withEditorSelection(() => {
+      document.execCommand(command, false, value);
+    });
+  };
+
+  const applyFontSize = (size: string) => {
+    setFontSize(size);
+
+    withEditorSelection((editor) => {
+      document.execCommand("fontSize", false, "7");
+
+      editor.querySelectorAll("font[size='7']").forEach((fontElement) => {
+        const span = document.createElement("span");
+        span.style.fontSize = `${size}px`;
+        span.innerHTML = fontElement.innerHTML;
+        fontElement.replaceWith(span);
+      });
+    });
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchAllPolicies = async () => {
+      setIsLoading(true);
+
+      try {
+        const policies = await policyService.getAllPolicies();
+
+        if (!isMounted) {
+          return;
+        }
+
+        setDrafts((current) => {
+          const nextDrafts = { ...current };
+
+          for (const policy of policies) {
+            const tabId = typeToTabIdMap[policy.type];
+            nextDrafts[tabId] = normalizePolicyContent(policy.content);
+          }
+
+          return nextDrafts;
+        });
+
+        setExistingByType((current) => {
+          const next = { ...current };
+
+          for (const policy of policies) {
+            next[policy.type] = true;
+          }
+
+          return next;
+        });
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    void fetchAllPolicies();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+    const activeType = activeTabConfig.type;
+
+    if (!existingByType[activeType] || fetchedByType[activeType]) {
+      return;
+    }
+
+    const fetchPolicyByType = async () => {
+      try {
+        const policy = await policyService.getPolicyByType(activeType);
+
+        if (!isMounted) {
+          return;
+        }
+
+        const tabId = typeToTabIdMap[policy.type];
+        setDrafts((current) => ({
+          ...current,
+          [tabId]: normalizePolicyContent(policy.content),
+        }));
+      } finally {
+        if (isMounted) {
+          setFetchedByType((current) => ({
+            ...current,
+            [activeType]: true,
+          }));
+        }
+      }
+    };
+
+    void fetchPolicyByType();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [activeTabConfig.type, existingByType, fetchedByType]);
+
+  const handleSave = async () => {
+    const payload = {
+      title: activeTabConfig.title,
+      content: drafts[activeTab],
+    };
+    const currentType = activeTabConfig.type;
+
+    setIsSaving(true);
+
+    try {
+      if (!existingByType[currentType]) {
+        try {
+          await policyService.createPolicy(currentType, payload);
+        } catch (error) {
+          const message = getErrorMessage(error).toLowerCase();
+
+          if (!message.includes("already exists")) {
+            throw error;
+          }
+
+          await policyService.updatePolicy(currentType, payload);
+        }
+      } else {
+        await policyService.updatePolicy(currentType, payload);
+      }
+
+      const latest = await policyService.getPolicyByType(currentType);
+      const latestTabId = typeToTabIdMap[latest.type];
+
+      setDrafts((current) => ({
+        ...current,
+        [latestTabId]: normalizePolicyContent(latest.content),
+      }));
+
+      setExistingByType((current) => ({
+        ...current,
+        [currentType]: true,
+      }));
+      setFetchedByType((current) => ({
+        ...current,
+        [currentType]: true,
+      }));
+
+      toast.success(`${activeTabConfig.label} saved successfully.`);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <section className="dashboard-hero dashboard-hero--wide policy-page">
@@ -121,7 +417,11 @@ function AdminPolicyPagesPage() {
               aria-controls={`policy-panel-${tab.id}`}
               id={`policy-tab-${tab.id}`}
               className={`policy-page__tab ${isActive ? "policy-page__tab--active" : ""}`}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => {
+                setActiveTab(tab.id);
+                setFontFamily("Inter");
+                setFontSize("24");
+              }}
             >
               {tab.label}
             </button>
@@ -137,18 +437,49 @@ function AdminPolicyPagesPage() {
       >
         <div
           className="policy-editor__toolbar"
-          aria-label={`${activeLabel} editor toolbar`}
+          aria-label={`${activeTabConfig.label} editor toolbar`}
         >
-          {toolbarItems.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              className="policy-editor__tool policy-editor__tool--select"
-            >
-              <span>{item.label}</span>
-              <FiChevronDown aria-hidden="true" focusable="false" />
-            </button>
-          ))}
+          <label
+            className="policy-editor__tool-label"
+            htmlFor="policy-font-family"
+          >
+            Font
+          </label>
+          <select
+            id="policy-font-family"
+            className="policy-editor__tool-select"
+            value={fontFamily}
+            onChange={(event) => {
+              const nextFont = event.target.value;
+              setFontFamily(nextFont);
+              applyCommand("fontName", nextFont);
+            }}
+          >
+            {fontOptions.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+
+          <label
+            className="policy-editor__tool-label"
+            htmlFor="policy-font-size"
+          >
+            Size
+          </label>
+          <select
+            id="policy-font-size"
+            className="policy-editor__tool-select policy-editor__tool-select--size"
+            value={fontSize}
+            onChange={(event) => applyFontSize(event.target.value)}
+          >
+            {fontSizeOptions.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
 
           <div className="policy-editor__divider" />
 
@@ -156,6 +487,8 @@ function AdminPolicyPagesPage() {
             type="button"
             className="policy-editor__tool"
             aria-label="Bold"
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => applyCommand("bold")}
           >
             <FiBold aria-hidden="true" focusable="false" />
           </button>
@@ -163,6 +496,8 @@ function AdminPolicyPagesPage() {
             type="button"
             className="policy-editor__tool"
             aria-label="Italic"
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => applyCommand("italic")}
           >
             <FiItalic aria-hidden="true" focusable="false" />
           </button>
@@ -170,6 +505,8 @@ function AdminPolicyPagesPage() {
             type="button"
             className="policy-editor__tool"
             aria-label="Underline"
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => applyCommand("underline")}
           >
             <FiUnderline aria-hidden="true" focusable="false" />
           </button>
@@ -180,6 +517,8 @@ function AdminPolicyPagesPage() {
             type="button"
             className="policy-editor__tool"
             aria-label="Align left"
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => applyCommand("justifyLeft")}
           >
             <FiAlignLeft aria-hidden="true" focusable="false" />
           </button>
@@ -187,6 +526,8 @@ function AdminPolicyPagesPage() {
             type="button"
             className="policy-editor__tool"
             aria-label="Bulleted list"
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => applyCommand("insertUnorderedList")}
           >
             <FiList aria-hidden="true" focusable="false" />
           </button>
@@ -194,30 +535,47 @@ function AdminPolicyPagesPage() {
             type="button"
             className="policy-editor__tool"
             aria-label="Numbered list"
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => applyCommand("insertOrderedList")}
           >
             <FiLayers aria-hidden="true" focusable="false" />
           </button>
         </div>
 
         <label className="policy-editor__label" htmlFor="policy-editor-content">
-          {activeLabel} content
+          {activeTabConfig.label} content
         </label>
-        <textarea
+        <div
+          key={activeTab}
           id="policy-editor-content"
-          className="policy-editor__textarea"
-          value={activeContent}
-          onChange={(event) => {
-            const nextValue = event.target.value;
+          ref={setEditorRef}
+          className="policy-editor__content"
+          contentEditable={!isLoading && !isSaving}
+          suppressContentEditableWarning
+          data-placeholder="Write policy content here..."
+          onMouseUp={saveSelection}
+          onKeyUp={saveSelection}
+          onBlur={saveSelection}
+          onInput={(event) => {
+            const nextValue = event.currentTarget.innerHTML;
             setDrafts((current) => ({
               ...current,
               [activeTab]: nextValue,
             }));
           }}
+          dangerouslySetInnerHTML={{
+            __html: isLoading ? "Loading policy..." : activeContent,
+          }}
         />
       </div>
 
-      <button type="button" className="policy-page__save-button">
-        Save Changes
+      <button
+        type="button"
+        className="policy-page__save-button"
+        onClick={handleSave}
+        disabled={isLoading || isSaving}
+      >
+        {isSaving ? "Saving..." : "Save Changes"}
       </button>
     </section>
   );
