@@ -203,8 +203,6 @@ function AdminPolicyPagesPage() {
   const activeTabConfig =
     policyTabs.find((tab) => tab.id === activeTab) ?? policyTabs[0];
 
-  const activeContent = drafts[activeTab];
-
   const setEditorRef = (node: HTMLDivElement | null) => {
     editorRef.current = node;
   };
@@ -221,13 +219,45 @@ function AdminPolicyPagesPage() {
 
   const restoreSelection = () => {
     const selection = window.getSelection();
+    const editor = editorRef.current;
 
-    if (!selection || !selectionRef.current) {
+    if (!selection || !editor) {
+      return;
+    }
+
+    if (!selectionRef.current) {
+      const fallbackRange = document.createRange();
+      fallbackRange.selectNodeContents(editor);
+      fallbackRange.collapse(false);
+      selection.removeAllRanges();
+      selection.addRange(fallbackRange);
+      selectionRef.current = fallbackRange;
       return;
     }
 
     selection.removeAllRanges();
     selection.addRange(selectionRef.current);
+  };
+
+  const getEditorContent = () => {
+    return forceLtrContent(editorRef.current?.innerHTML ?? drafts[activeTab]);
+  };
+
+  const persistCurrentDraft = () => {
+    const nextContent = getEditorContent();
+
+    setDrafts((current) => {
+      if (current[activeTab] === nextContent) {
+        return current;
+      }
+
+      return {
+        ...current,
+        [activeTab]: nextContent,
+      };
+    });
+
+    return nextContent;
   };
 
   const withEditorSelection = (operation: (editor: HTMLDivElement) => void) => {
@@ -360,10 +390,31 @@ function AdminPolicyPagesPage() {
     };
   }, [activeTabConfig.type, existingByType, fetchedByType]);
 
+  useEffect(() => {
+    const editor = editorRef.current;
+
+    if (!editor) {
+      return;
+    }
+
+    editor.setAttribute("dir", "ltr");
+
+    if (document.activeElement === editor) {
+      return;
+    }
+
+    const nextContent = isLoading ? "" : drafts[activeTab];
+
+    if (editor.innerHTML !== nextContent) {
+      editor.innerHTML = nextContent;
+    }
+  }, [activeTab, drafts, isLoading]);
+
   const handleSave = async () => {
+    const latestContent = persistCurrentDraft();
     const payload = {
       title: activeTabConfig.title,
-      content: drafts[activeTab],
+      content: latestContent,
     };
     const currentType = activeTabConfig.type;
 
@@ -431,6 +482,7 @@ function AdminPolicyPagesPage() {
               id={`policy-tab-${tab.id}`}
               className={`policy-page__tab ${isActive ? "policy-page__tab--active" : ""}`}
               onClick={() => {
+                persistCurrentDraft();
                 setActiveTab(tab.id);
                 setFontFamily("Inter");
                 setFontSize("24");
@@ -469,7 +521,7 @@ function AdminPolicyPagesPage() {
               setFontFamily(nextFont);
               applyCommand("fontName", nextFont);
             }}
-            onMouseDown={(event) => event.preventDefault()}
+            onMouseDown={saveSelection}
           >
             {fontOptions.map((option) => (
               <option key={option} value={option}>
@@ -489,7 +541,7 @@ function AdminPolicyPagesPage() {
             className="policy-editor__tool-select policy-editor__tool-select--size"
             value={fontSize}
             onChange={(event) => applyFontSize(event.target.value)}
-            onMouseDown={(event) => event.preventDefault()}
+            onMouseDown={saveSelection}
           >
             {fontSizeOptions.map((option) => (
               <option key={option} value={option}>
@@ -555,7 +607,7 @@ function AdminPolicyPagesPage() {
             id="policy-align-select"
             className="policy-editor__tool-select policy-editor__tool-select--align"
             value={alignment}
-            onMouseDown={(event) => event.preventDefault()}
+            onMouseDown={saveSelection}
             onChange={(event) => {
               const nextAlignment = event.target.value;
               setAlignment(nextAlignment);
@@ -612,7 +664,7 @@ function AdminPolicyPagesPage() {
             id="policy-list-select"
             className="policy-editor__tool-select policy-editor__tool-select--list"
             value={listType}
-            onMouseDown={(event) => event.preventDefault()}
+            onMouseDown={saveSelection}
             onChange={(event) => {
               const nextList = event.target.value;
               setListType(nextList);
@@ -640,7 +692,6 @@ function AdminPolicyPagesPage() {
           {activeTabConfig.label} content
         </label>
         <div
-          key={activeTab}
           id="policy-editor-content"
           ref={setEditorRef}
           className="policy-editor__content"
@@ -654,13 +705,12 @@ function AdminPolicyPagesPage() {
           onInput={(event) => {
             const nextValue = forceLtrContent(event.currentTarget.innerHTML);
             event.currentTarget.setAttribute("dir", "ltr");
+            selectionRef.current = null;
             setDrafts((current) => ({
               ...current,
               [activeTab]: nextValue,
             }));
-          }}
-          dangerouslySetInnerHTML={{
-            __html: isLoading ? "Loading policy..." : activeContent,
+            saveSelection();
           }}
         />
       </div>

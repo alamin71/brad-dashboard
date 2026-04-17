@@ -1594,7 +1594,7 @@
   outline: none;
   white-space: normal;
   direction: ltr;
-  unicode-bidi: plaintext;
+  unicode-bidi: isolate;
   text-align: left;
 }
 
