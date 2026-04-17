@@ -1,9 +1,31 @@
 import { useMemo, useState } from "react";
 import { FiFilter } from "react-icons/fi";
 
+type MetricKey = "totalUser" | "newUser" | "deactivatedUser" | "deletedUser";
+
 type MonthlyPoint = {
   month: string;
   value: number;
+  x: number;
+  y: number;
+};
+
+type HoveredPoint = {
+  month: string;
+  metricLabel: string;
+  value: number;
+  color: string;
+  leftPercent: number;
+  topPercent: number;
+};
+
+type YearSeries = Record<MetricKey, number[]>;
+
+type MetricConfig = {
+  key: MetricKey;
+  label: string;
+  color: string;
+  fillColor: string;
 };
 
 const monthLabels = [
@@ -21,26 +43,63 @@ const monthLabels = [
   "Dec",
 ];
 
-const buildMonthlySeries = (seed: number): MonthlyPoint[] => {
-  return monthLabels.map((month, index) => {
-    const seasonalWave = Math.sin((index / 11) * Math.PI * 2) * 18;
-    const trend = index * 9;
-    const noise = ((seed + index * 17) % 13) * 2;
+const metricConfigs: MetricConfig[] = [
+  {
+    key: "totalUser",
+    label: "Total User",
+    color: "#dd0f0a",
+    fillColor: "rgba(221, 15, 10, 0.12)",
+  },
+  {
+    key: "newUser",
+    label: "New User",
+    color: "#f97316",
+    fillColor: "rgba(249, 115, 22, 0.12)",
+  },
+  {
+    key: "deactivatedUser",
+    label: "Deactivated User",
+    color: "#2563eb",
+    fillColor: "rgba(37, 99, 235, 0.12)",
+  },
+  {
+    key: "deletedUser",
+    label: "Deleted User",
+    color: "#7c3aed",
+    fillColor: "rgba(124, 58, 237, 0.12)",
+  },
+];
 
-    return {
-      month,
-      value: Math.max(18, Math.round(seed + trend + seasonalWave + noise)),
-    };
+const buildMetricSeries = (
+  seed: number,
+  base: number,
+  trend: number,
+  amplitude: number,
+) => {
+  return monthLabels.map((_, index) => {
+    const wave = Math.sin((index / 11) * Math.PI * 2) * amplitude;
+    const variation = ((seed + index * 19) % 11) - 5;
+
+    return Math.max(8, Math.round(base + index * trend + wave + variation));
   });
+};
+
+const buildYearSeries = (seed: number): YearSeries => {
+  return {
+    totalUser: buildMetricSeries(seed + 11, 95, 6.4, 12),
+    newUser: buildMetricSeries(seed + 21, 56, 4.6, 10),
+    deactivatedUser: buildMetricSeries(seed + 31, 36, 3.4, 8),
+    deletedUser: buildMetricSeries(seed + 41, 24, 2.4, 6),
+  };
 };
 
 const runningYear = new Date().getFullYear();
 
-const yearSeriesMap: Record<number, MonthlyPoint[]> = {
-  [runningYear]: buildMonthlySeries(96),
-  [runningYear - 1]: buildMonthlySeries(74),
-  [runningYear - 2]: buildMonthlySeries(54),
-  [runningYear - 3]: buildMonthlySeries(62),
+const yearSeriesMap: Record<number, YearSeries> = {
+  [runningYear]: buildYearSeries(96),
+  [runningYear - 1]: buildYearSeries(74),
+  [runningYear - 2]: buildYearSeries(54),
+  [runningYear - 3]: buildYearSeries(62),
 };
 
 const getAvailableYears = () => {
@@ -78,6 +137,21 @@ const buildSmoothPath = (points: Array<{ x: number; y: number }>) => {
   return path.join(" ");
 };
 
+const buildAreaPath = (
+  path: string,
+  points: Array<{ x: number; y: number }>,
+  chartHeight: number,
+  chartPadding: number,
+) => {
+  if (!points.length) {
+    return "";
+  }
+
+  const lastPoint = points[points.length - 1];
+  const firstPoint = points[0];
+  return `${path} L ${lastPoint.x} ${chartHeight - chartPadding} L ${firstPoint.x} ${chartHeight - chartPadding} Z`;
+};
+
 function AdminDashboardPage() {
   const [selectedYear, setSelectedYear] = useState(() => {
     return yearSeriesMap[runningYear] ? runningYear : getAvailableYears()[0];
@@ -107,27 +181,74 @@ function AdminDashboardPage() {
   ];
 
   const yearOptions = useMemo(() => getAvailableYears(), []);
-  const monthlySeries =
+  const selectedYearSeries =
     yearSeriesMap[selectedYear] ?? yearSeriesMap[runningYear];
-  const maxValue = Math.max(...monthlySeries.map((item) => item.value));
+  const allValues = metricConfigs.flatMap(
+    (config) => selectedYearSeries[config.key],
+  );
+  const maxValue = Math.max(...allValues);
+  const minValue = Math.min(...allValues);
+  const yRangePadding = Math.max(10, Math.round((maxValue - minValue) * 0.18));
+  const domainMax = maxValue + yRangePadding;
+  const domainMin = Math.max(0, minValue - yRangePadding);
   const chartWidth = 640;
-  const chartHeight = 220;
-  const chartPadding = 24;
-  const chartPoints = monthlySeries.map((item, index) => {
-    const x =
-      chartPadding +
-      (index * (chartWidth - chartPadding * 2)) / (monthlySeries.length - 1);
-    const y =
-      chartHeight -
-      chartPadding -
-      (item.value / maxValue) * (chartHeight - chartPadding * 2);
+  const chartHeight = 260;
+  const chartPadding = 22;
+  const [hoveredPoint, setHoveredPoint] = useState<HoveredPoint | null>(null);
 
-    return { ...item, x, y };
+  const yTicks = Array.from({ length: 4 }, (_, index) => {
+    const ratio = index / 3;
+    return Math.round(domainMax - ratio * (domainMax - domainMin));
   });
 
-  const linePath = buildSmoothPath(chartPoints);
+  const toY = (value: number) => {
+    const safeRange = Math.max(1, domainMax - domainMin);
+    const normalized = (value - domainMin) / safeRange;
 
-  const pointAreaPath = `${linePath} L ${chartWidth - chartPadding} ${chartHeight - chartPadding} L ${chartPadding} ${chartHeight - chartPadding} Z`;
+    return (
+      chartHeight - chartPadding - normalized * (chartHeight - chartPadding * 2)
+    );
+  };
+
+  const pointsByMetric = metricConfigs.map((config) => {
+    const points: MonthlyPoint[] = monthLabels.map((month, index) => {
+      const value = selectedYearSeries[config.key][index];
+      const x =
+        chartPadding +
+        (index * (chartWidth - chartPadding * 2)) / (monthLabels.length - 1);
+      const y = toY(value);
+
+      return {
+        month,
+        value,
+        x,
+        y,
+      };
+    });
+
+    return {
+      ...config,
+      points,
+      linePath: buildSmoothPath(points),
+      areaPath: buildAreaPath(
+        buildSmoothPath(points),
+        points,
+        chartHeight,
+        chartPadding,
+      ),
+    };
+  });
+
+  const handlePointHover = (point: MonthlyPoint, metric: MetricConfig) => {
+    setHoveredPoint({
+      month: point.month,
+      metricLabel: metric.label,
+      value: point.value,
+      color: metric.color,
+      leftPercent: (point.x / chartWidth) * 100,
+      topPercent: (point.y / chartHeight) * 100,
+    });
+  };
 
   return (
     <section className="dashboard-hero dashboard-hero--wide">
@@ -192,68 +313,142 @@ function AdminDashboardPage() {
         <div
           className="dashboard-overview-chart__plot dashboard-overview-chart__plot--line"
           role="img"
-          aria-label="Overview data line chart"
+          aria-label="Monthly multi-metric growth line chart"
+          onMouseLeave={() => setHoveredPoint(null)}
         >
+          <div className="dashboard-overview-chart__y-axis" aria-hidden="true">
+            {yTicks.map((tick) => (
+              <span key={tick}>{tick}</span>
+            ))}
+          </div>
+
           <svg
             className="dashboard-overview-chart__svg"
             viewBox={`0 0 ${chartWidth} ${chartHeight}`}
             preserveAspectRatio="none"
           >
             <defs>
-              <linearGradient
-                id="overviewLineGradient"
-                x1="0"
-                y1="0"
-                x2="0"
-                y2="1"
-              >
-                <stop offset="0%" stopColor="#ff4f47" stopOpacity="0.35" />
-                <stop offset="100%" stopColor="#ff4f47" stopOpacity="0.02" />
-              </linearGradient>
+              {pointsByMetric.map((metric, index) => (
+                <linearGradient
+                  key={`${metric.key}-gradient`}
+                  id={`overviewLineGradient-${index}`}
+                  x1="0"
+                  y1="0"
+                  x2="0"
+                  y2="1"
+                >
+                  <stop
+                    offset="0%"
+                    stopColor={metric.color}
+                    stopOpacity="0.28"
+                  />
+                  <stop
+                    offset="100%"
+                    stopColor={metric.color}
+                    stopOpacity="0.01"
+                  />
+                </linearGradient>
+              ))}
             </defs>
 
-            <path
-              className="dashboard-overview-chart__area"
-              d={pointAreaPath}
-            />
-            <path className="dashboard-overview-chart__line" d={linePath} />
+            {yTicks.map((tick) => {
+              const y = toY(tick);
 
-            {chartPoints.map((point, index) => (
-              <g
-                key={`${point.month}-point`}
-                className="dashboard-overview-chart__node-group"
-              >
-                <circle
-                  className="dashboard-overview-chart__node"
-                  cx={point.x}
-                  cy={point.y}
-                  r="6"
-                  style={{ animationDelay: `${index * 0.12}s` }}
+              return (
+                <line
+                  key={`grid-${tick}`}
+                  className="dashboard-overview-chart__grid-line"
+                  x1={chartPadding}
+                  x2={chartWidth - chartPadding}
+                  y1={y}
+                  y2={y}
                 />
-                <circle
-                  className="dashboard-overview-chart__node-ring"
-                  cx={point.x}
-                  cy={point.y}
-                  r="12"
-                  style={{ animationDelay: `${index * 0.12}s` }}
+              );
+            })}
+
+            {pointsByMetric.map((metric, metricIndex) => (
+              <g key={`${metric.key}-series`}>
+                <path
+                  className="dashboard-overview-chart__area"
+                  d={metric.areaPath}
+                  style={{
+                    fill: `url(#overviewLineGradient-${metricIndex})`,
+                    animationDelay: `${metricIndex * 0.08}s`,
+                  }}
                 />
+                <path
+                  className="dashboard-overview-chart__line"
+                  d={metric.linePath}
+                  style={{
+                    stroke: metric.color,
+                    animationDelay: `${metricIndex * 0.08}s`,
+                  }}
+                />
+
+                {metric.points.map((point, index) => (
+                  <g
+                    key={`${metric.key}-${point.month}`}
+                    className="dashboard-overview-chart__node-group"
+                  >
+                    <circle
+                      className="dashboard-overview-chart__node-ring"
+                      cx={point.x}
+                      cy={point.y}
+                      r="11"
+                      style={{
+                        fill: metric.fillColor,
+                        animationDelay: `${metricIndex * 0.08 + index * 0.04}s`,
+                      }}
+                    />
+                    <circle
+                      className="dashboard-overview-chart__node"
+                      cx={point.x}
+                      cy={point.y}
+                      r="4.5"
+                      style={{
+                        fill: metric.color,
+                        animationDelay: `${metricIndex * 0.08 + index * 0.04}s`,
+                      }}
+                      onMouseEnter={() => handlePointHover(point, metric)}
+                      onMouseMove={() => handlePointHover(point, metric)}
+                    />
+                  </g>
+                ))}
+
+                <text
+                  className="dashboard-overview-chart__series-label"
+                  x={metric.points[0].x + 8}
+                  y={metric.points[0].y - (10 - metricIndex * 2)}
+                  fill={metric.color}
+                >
+                  {metric.label}
+                </text>
               </g>
             ))}
           </svg>
 
+          {hoveredPoint ? (
+            <div
+              className="dashboard-overview-chart__tooltip"
+              style={{
+                left: `${hoveredPoint.leftPercent}%`,
+                top: `${Math.max(8, hoveredPoint.topPercent - 12)}%`,
+                borderColor: hoveredPoint.color,
+              }}
+            >
+              <strong style={{ color: hoveredPoint.color }}>
+                {hoveredPoint.metricLabel}
+              </strong>
+              <span>{hoveredPoint.month}</span>
+              <span>Count: {hoveredPoint.value}</span>
+            </div>
+          ) : null}
+
           <div className="dashboard-overview-chart__labels">
-            {chartPoints.map((point) => (
-              <div
-                className="dashboard-overview-chart__label-group"
-                key={point.month}
-              >
-                <span className="dashboard-overview-chart__value">
-                  {point.value}
-                </span>
-                <span className="dashboard-overview-chart__label">
-                  {point.month}
-                </span>
-              </div>
+            {monthLabels.map((month) => (
+              <span className="dashboard-overview-chart__label" key={month}>
+                {month}
+              </span>
             ))}
           </div>
         </div>

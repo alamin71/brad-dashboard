@@ -1013,16 +1013,18 @@
 .dashboard-overview-chart__plot {
   margin-top: 14px;
   position: relative;
-  min-height: 330px;
+  min-height: 360px;
   border-radius: 14px;
   border: 1px solid #f0e3df;
   background: linear-gradient(180deg, #fff 0%, #fffaf8 100%);
   overflow: hidden;
+  padding: 10px 12px 12px;
 }
 
 .dashboard-overview-chart__svg {
-  width: 100%;
-  height: 220px;
+  width: calc(100% - 44px);
+  margin-left: 44px;
+  height: 250px;
   display: block;
   overflow: visible;
 }
@@ -1032,7 +1034,6 @@
 }
 
 .dashboard-overview-chart__area {
-  fill: url(#overviewLineGradient);
   opacity: 0;
   animation: dashboardChartFadeIn 0.4s ease forwards;
   animation-delay: 0.15s;
@@ -1040,8 +1041,7 @@
 
 .dashboard-overview-chart__line {
   fill: none;
-  stroke: #dd0f0a;
-  stroke-width: 4;
+  stroke-width: 3;
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-dasharray: 900;
@@ -1049,34 +1049,85 @@
   animation: dashboardLineDraw 1.15s ease forwards;
 }
 
+.dashboard-overview-chart__grid-line {
+  stroke: #f2e8e4;
+  stroke-width: 1;
+}
+
+.dashboard-overview-chart__y-axis {
+  position: absolute;
+  top: 18px;
+  left: 0;
+  bottom: 48px;
+  width: 44px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding-right: 8px;
+}
+
+.dashboard-overview-chart__y-axis span {
+  color: #9b9b9b;
+  font-size: 0.69rem;
+  font-weight: 700;
+}
+
 .dashboard-overview-chart__node {
-  fill: #dd0f0a;
   stroke: #fff;
-  stroke-width: 3;
+  stroke-width: 2.5;
   opacity: 0;
   transform-box: fill-box;
   transform-origin: center;
   animation: dashboardNodePop 0.45s ease forwards;
+  cursor: pointer;
 }
 
 .dashboard-overview-chart__node-ring {
-  fill: rgba(221, 15, 10, 0.08);
   opacity: 0;
   transform-box: fill-box;
   transform-origin: center;
   animation: dashboardNodeRing 0.45s ease forwards;
 }
 
-.dashboard-overview-chart__labels {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-  padding: 0 8px 14px;
+.dashboard-overview-chart__series-label {
+  font-size: 11px;
+  font-weight: 700;
+  paint-order: stroke;
+  stroke: #fff;
+  stroke-width: 3px;
 }
 
-.dashboard-overview-chart__label-group {
+.dashboard-overview-chart__tooltip {
+  position: absolute;
+  transform: translate(-50%, -110%);
+  z-index: 3;
+  min-width: 128px;
+  border: 1px solid;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 14px 28px rgba(31, 20, 16, 0.16);
+  padding: 8px 10px;
   display: grid;
+  gap: 2px;
+  pointer-events: none;
+}
+
+.dashboard-overview-chart__tooltip strong {
+  font-size: 0.75rem;
+}
+
+.dashboard-overview-chart__tooltip span {
+  color: #676767;
+  font-size: 0.72rem;
+}
+
+.dashboard-overview-chart__labels {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
   gap: 4px;
+  margin-left: 44px;
+  padding: 0 2px;
   text-align: center;
 }
 
@@ -1088,7 +1139,8 @@
 
 .dashboard-overview-chart__label {
   color: #666;
-  font-size: 0.76rem;
+  font-size: 0.72rem;
+  font-weight: 700;
   line-height: 1.25;
 }
 
@@ -1960,11 +2012,11 @@
   }
 
   .dashboard-overview-chart__plot {
-    min-height: 360px;
+    min-height: 380px;
   }
 
   .dashboard-overview-chart__labels {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 10px;
   }
 
@@ -2047,15 +2099,24 @@
   }
 
   .dashboard-overview-chart__plot {
-    min-height: 300px;
+    min-height: 410px;
+    padding: 10px;
   }
 
   .dashboard-overview-chart__svg {
-    height: 200px;
+    width: calc(100% - 34px);
+    margin-left: 34px;
+    height: 230px;
+  }
+
+  .dashboard-overview-chart__y-axis {
+    width: 34px;
+    padding-right: 4px;
   }
 
   .dashboard-overview-chart__labels {
-    grid-template-columns: 1fr;
+    margin-left: 34px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .dashboard-overview-chart__header {
