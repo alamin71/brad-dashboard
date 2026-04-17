@@ -5,6 +5,7 @@ import "react-toastify/dist/ReactToastify.css";
 import AdminContentPage from "./pages/admin/AdminContentPage";
 import AdminDashboardPage from "./pages/admin/AdminDashboardPage";
 import AdminAccountSettingsPage from "./pages/admin/AdminAccountSettingsPage";
+import AdminPolicyPagesPage from "./pages/admin/AdminPolicyPagesPage";
 import AdminLayout from "./pages/admin/AdminLayout";
 import AdminPlaceholderPage from "./pages/admin/AdminPlaceholderPage";
 import AuthLayout from "./components/auth/AuthLayout";
@@ -279,12 +280,7 @@ function App() {
           />
           <Route
             path={authRoutes.policyPages.replace("/admin/", "")}
-            element={
-              <AdminPlaceholderPage
-                title="Policy Pages"
-                description="Create and update policy pages from here."
-              />
-            }
+            element={<AdminPolicyPagesPage />}
           />
           <Route
             path={authRoutes.accountSettings.replace("/admin/", "")}
