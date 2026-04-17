@@ -955,6 +955,18 @@
   font-weight: 800;
 }
 
+.dashboard-overview-chart__heading-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.dashboard-overview-chart__heading-copy p {
+  margin: 0;
+  color: #8d8d8d;
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
 .dashboard-overview-chart__header {
   display: flex;
   align-items: center;

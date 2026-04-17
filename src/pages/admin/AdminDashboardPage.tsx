@@ -156,7 +156,10 @@ function AdminDashboardPage() {
         aria-label="Overview trend chart"
       >
         <div className="dashboard-overview-chart__header">
-          <h2>Overview Trend</h2>
+          <div className="dashboard-overview-chart__heading-copy">
+            <h2>Monthly User Growth</h2>
+            <p>Year-wise Jan to Dec user growth trend for the selected year.</p>
+          </div>
           <div className="dashboard-overview-chart__filter">
             <span
               className="dashboard-overview-chart__filter-icon"
@@ -175,6 +178,7 @@ function AdminDashboardPage() {
               className="dashboard-overview-chart__filter-select"
               value={selectedYear}
               onChange={(event) => setSelectedYear(Number(event.target.value))}
+              aria-label="Select growth year"
             >
               {yearOptions.map((year) => (
                 <option key={year} value={year}>
